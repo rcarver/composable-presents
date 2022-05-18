@@ -50,8 +50,7 @@ final class ComposableOptionalityTests: XCTestCase {
             .eraseToEffect()
     }
 
-    func test_design_optional() {
-
+    func test_optional() {
         struct WorldState: Equatable {
             @Presented var person: PersonState?
         }
@@ -112,12 +111,12 @@ final class ComposableOptionalityTests: XCTestCase {
 
         mainQueue.advance(by: 1)
         store.receive(.person(.setAge(1))) {
-            $0.$person.state?.age = 1
+            $0.person?.age = 1
         }
 
         mainQueue.advance(by: 1)
         store.receive(.person(.setAge(2))) {
-            $0.$person.state?.age = 2
+            $0.person?.age = 2
         }
 
         store.send(.died) {
@@ -128,10 +127,9 @@ final class ComposableOptionalityTests: XCTestCase {
         }
     }
 
-    func test_design_forEach() {
-
+    func test_forEach() {
         struct WorldState: Equatable {
-            var people: IdentifiedArrayOf<PersonState> = []
+            @PresentedEach var people: IdentifiedArrayOf<PersonState> = []
         }
         enum WorldAction: Equatable {
             case born(PersonState.ID)
@@ -163,12 +161,12 @@ final class ComposableOptionalityTests: XCTestCase {
                     return .none
                 }
             }
-//                .present(
-//                    with: .longRunning(PersonReducer),
-//                    state: \.$people,
-//                    action: /WorldAction.people,
-//                    environment: \.person
-//                )
+                .presentEach(
+                    with: .longRunning(PersonReducer),
+                    state: \.$people,
+                    action: /WorldAction.person,
+                    environment: \.person
+                )
         )
 
         let mainQueue = DispatchQueue.test
@@ -183,28 +181,31 @@ final class ComposableOptionalityTests: XCTestCase {
         )
 
         store.send(.born("John")) {
-            $0.people = [
-                .init(name: "John", age: 0)
+            $0.$people = [
+                .presented(.init(name: "John", age: 0))
             ]
-//            $0.$person = .presented(.init(name: "John", age: 0))
         }
 
         store.receive(.person(id: "John", action: .begin))
 
-//        mainQueue.advance(by: 1)
-//        store.receive(.person(.setAge(1))) {
-//            $0.$person.state?.age = 1
-//        }
-//
-//        mainQueue.advance(by: 1)
-//        store.receive(.person(.setAge(2))) {
-//            $0.$person.state?.age = 2
-//        }
+        mainQueue.advance(by: 1)
+        store.receive(.person(id: "John", action: .setAge(1))) {
+            $0.people[id: "John"]?.age = 1
+        }
+
+        mainQueue.advance(by: 1)
+        store.receive(.person(id: "John", action: .setAge(2))) {
+            $0.people[id: "John"]?.age = 2
+        }
 
         store.send(.died("John")) {
-            $0.people = []
+            $0.$people = [
+                .cancelling(.init(name: "John", age: 2))
+            ]
         }
-        store.receive(.person(id: "John", action: .cancel))
+        store.receive(.person(id: "John", action: .cancel)) {
+            $0.$people = []
+        }
     }
 
 //    func test_design() {
