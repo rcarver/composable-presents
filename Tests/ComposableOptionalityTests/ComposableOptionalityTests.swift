@@ -6,7 +6,8 @@ import ComposableOptionality
 
 final class ComposableOptionalityTests: XCTestCase {
 
-    struct PersonState: Equatable {
+    struct PersonState: Equatable, Identifiable {
+        var id: String { name }
         var name: String
         var age: Int
     }
@@ -41,7 +42,15 @@ final class ComposableOptionalityTests: XCTestCase {
         }
     )
 
-    func test_design_single() {
+    func yearsEffect<S: Scheduler>(_ mainQueue: S) -> Effect<Int, Never> {
+        (1..<10).publisher
+            .flatMap(maxPublishers: .max(1)) {
+                Just($0).delay(for: 1, scheduler: mainQueue)
+            }
+            .eraseToEffect()
+    }
+
+    func test_design_optional() {
 
         struct WorldState: Equatable {
             @Presented var person: PersonState?
@@ -90,13 +99,7 @@ final class ComposableOptionalityTests: XCTestCase {
             initialState: .init(),
             reducer: WorldReducer,
             environment: .init(
-                years: {
-                    (1..<10).publisher
-                        .flatMap(maxPublishers: .max(1)) {
-                            Just($0).delay(for: 1, scheduler: mainQueue)
-                        }
-                        .eraseToEffect()
-                },
+                years: { self.yearsEffect(mainQueue) },
                 mainQueue: mainQueue.eraseToAnyScheduler()
             )
         )
@@ -123,6 +126,85 @@ final class ComposableOptionalityTests: XCTestCase {
         store.receive(.person(.cancel)) {
             $0.$person = .dismissed
         }
+    }
+
+    func test_design_forEach() {
+
+        struct WorldState: Equatable {
+            var people: IdentifiedArrayOf<PersonState> = []
+        }
+        enum WorldAction: Equatable {
+            case born(PersonState.ID)
+            case died(PersonState.ID)
+            case person(id: PersonState.ID, action: PersonAction)
+        }
+        struct WorldEnvironment {
+            var years: () -> Effect<Int, Never>
+            var mainQueue: AnySchedulerOf<DispatchQueue>
+            var person: PersonEnvironment {
+                .init(years: years, mainQueue: mainQueue)
+            }
+        }
+        let WorldReducer = Reducer<WorldState, WorldAction, WorldEnvironment>.combine(
+            PersonReducer.forEach(
+                state: \.people,
+                action: /WorldAction.person,
+                environment: \.person
+            ),
+            Reducer { state, action, environment in
+                switch action {
+                case .born(let name):
+                    state.people.append(.init(name: name, age: 0))
+                    return .none
+                case .died(let name):
+                    state.people.remove(id: name)
+                    return .none
+                case .person:
+                    return .none
+                }
+            }
+//                .present(
+//                    with: .longRunning(PersonReducer),
+//                    state: \.$people,
+//                    action: /WorldAction.people,
+//                    environment: \.person
+//                )
+        )
+
+        let mainQueue = DispatchQueue.test
+
+        let store = TestStore(
+            initialState: .init(),
+            reducer: WorldReducer,
+            environment: .init(
+                years: { self.yearsEffect(mainQueue) },
+                mainQueue: mainQueue.eraseToAnyScheduler()
+            )
+        )
+
+        store.send(.born("John")) {
+            $0.people = [
+                .init(name: "John", age: 0)
+            ]
+//            $0.$person = .presented(.init(name: "John", age: 0))
+        }
+
+        store.receive(.person(id: "John", action: .begin))
+
+//        mainQueue.advance(by: 1)
+//        store.receive(.person(.setAge(1))) {
+//            $0.$person.state?.age = 1
+//        }
+//
+//        mainQueue.advance(by: 1)
+//        store.receive(.person(.setAge(2))) {
+//            $0.$person.state?.age = 2
+//        }
+
+        store.send(.died("John")) {
+            $0.people = []
+        }
+        store.receive(.person(id: "John", action: .cancel))
     }
 
 //    func test_design() {
