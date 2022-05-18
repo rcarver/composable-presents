@@ -23,7 +23,7 @@ extension PresentationPhase {
     /// Get or set the underlying state.
     ///
     /// Getting the value returns nil if the phase is `dismissed`.
-    /// Setting the value to non-nil updates the state in the current phase.
+    /// Setting the value to non-nil updates the state at the current phase.
     /// Setting the value to `nil` has no effect.
     public var state: State? {
         get {
@@ -52,23 +52,32 @@ extension PresentationPhase {
     /// Activate or deactivate the presentation.
     ///
     /// * A non-nil state will move the pahse from `dismissed` to `presenting`.
-    /// * A nil state will move to to the next logical dismissal phase.
+    /// * A nil state will move from presenting to dismissing.
     /// * All other permutations will update the stored state with no change of phase.
     mutating func activate(with newValue: State?) {
         switch (self, newValue) {
 
+            // Move out of dismisssed
+
         case (.dismissed, .some(let value)): self = .presenting(value)
-        case (.dismissed, .none): self = .dismissed
+
+            // Update state in place
 
         case (.presenting, .some(let value)): self = .presenting(value)
         case (.presented, .some(let value)): self = .presented(value)
         case (.dismissing, .some(let value)): self = .dismissing(value)
         case (.cancelling, .some(let value)): self = .cancelling(value)
 
+            // Move out of presenting
+
         case (.presenting(let state), .none): self = .dismissing(state)
         case (.presented(let state), .none): self = .dismissing(state)
-        case (.dismissing(let state), .none): self = .cancelling(state)
-        case (.cancelling(let state), .none): self = .cancelling(state)
+
+            // Don't change phase while in the process of dismissing
+
+        case (.dismissed, .none): break
+        case (.dismissing, .none): break
+        case (.cancelling, .none): break
         }
     }
 }
@@ -87,19 +96,15 @@ public struct IdentifiedArrayOfPresentationPhase<ID: Hashable, State> {
 extension IdentifiedArrayOfPresentationPhase {
     /// Initialize from states, setting the initial presentation phase.
     init(identifiedStates states: IdentifiedArray<ID, State>, initialPhase: (State) -> PresentationPhase<State>) {
-        let values = states.ids.compactMap { id -> IdentifiedPresentationPhase<ID, State>? in
-            guard let state = states[id: id] else { return nil }
-            return IdentifiedPresentationPhase(id: id, phase: initialPhase(state))
-        }
-        self.array = .init(uncheckedUniqueElements: values)
+        self.array = .init(uncheckedUniqueElements: states.ids.map { id in
+            IdentifiedPresentationPhase(id: id, phase: initialPhase(states[id: id]!))
+        })
     }
     /// Initialize from presentation phases.
     init(identifiedPhases phases: IdentifiedArray<ID, PresentationPhase<State>>) {
-        let values = phases.ids.compactMap { id -> IdentifiedPresentationPhase<ID, State>? in
-            guard let state = phases[id: id] else { return nil }
-            return IdentifiedPresentationPhase(id: id, phase: state)
-        }
-        self.array = .init(uncheckedUniqueElements: values)
+        self.array = .init(uncheckedUniqueElements: phases.ids.map { id in
+            IdentifiedPresentationPhase(id: id, phase: phases[id: id]!)
+        })
     }
     /// Activate each state by merging with current state.
     mutating func activate(with newValue: IdentifiedArray<ID, State>) {
@@ -108,11 +113,6 @@ extension IdentifiedArrayOfPresentationPhase {
         }
         for id in Set(self.array.ids).union(newValue.ids) {
             self.array[id: id]?.phase.activate(with: newValue[id: id])
-        }
-        for id in self.array.ids {
-            if case .dismissed = self.array[id: id]?.phase {
-                self.array.remove(id: id)
-            }
         }
     }
     /// Take the new value, and clean up any lingering `dismissed` values.

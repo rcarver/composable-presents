@@ -1,6 +1,8 @@
 import ComposableArchitecture
 
 extension Reducer {
+
+    /// Manage presentation and dismissal lifecycle for the state.
     public func present<LocalState, LocalAction, LocalEnvironment>(
         with presenter: Presenter<LocalState, LocalAction, LocalEnvironment>,
         state toLocalState: WritableKeyPath<State, PresentationPhase<LocalState>>,
@@ -16,13 +18,15 @@ extension Reducer {
             let presentationEffects = presenter.run(
                 &globalState[keyPath: toLocalState],
                 toLocalEnvironment(globalEnvironment)
-            )
+            ).map(toLocalAction.embed)
             return .merge(
                 globalEffects,
-                presentationEffects.map(toLocalAction.embed)
+                presentationEffects
             )
         }
     }
+
+    /// Manage presentation and dismissal lifecycle for each state.
     public func presentEach<LocalState, LocalAction, LocalEnvironment, ID>(
         with presenter: Presenter<LocalState, LocalAction, LocalEnvironment>,
         state toLocalState: WritableKeyPath<State, IdentifiedArrayOfPresentationPhase<ID, LocalState>>,
@@ -35,20 +39,11 @@ extension Reducer {
                 globalAction,
                 globalEnvironment
             )
-            for id in globalState[keyPath: toLocalState].array.ids {
-                print("aREDUC", id)
-                print("a>", globalState[keyPath: toLocalState].array[id: id]!.phase)
-            }
             let presentationEffects = globalState[keyPath: toLocalState].array.ids.map { id in
                 presenter.run(
                     &globalState[keyPath: toLocalState].array[id: id]!.phase,
                     toLocalEnvironment(globalEnvironment)
-                )
-                .map { toLocalAction.embed((id, $0)) }
-            }
-            for id in globalState[keyPath: toLocalState].array.ids {
-                print("bREDUC", id)
-                print("b>", globalState[keyPath: toLocalState].array[id: id]!.phase)
+                ).map { toLocalAction.embed((id, $0)) }
             }
             return .merge(
                 globalEffects,

@@ -24,6 +24,7 @@ public enum PresentationAction {
 }
 
 extension Presenter {
+    /// Run the presenter, mutating the presenatation phase and executing presentation hooks.
     func run(_ phase: inout PresentationPhase<State>, _ environment: Environment) -> Effect<Action, Never> {
         switch phase {
         case .dismissed:
