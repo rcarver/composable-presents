@@ -2,22 +2,15 @@ import ComposableArchitecture
 
 @propertyWrapper
 public struct Presented<State> {
+    var presentedState: PresentedState<State>
 
     public init() {
         self.presentedState = .dismissed
     }
-
-    public init(state: State) {
-        self.presentedState = .presented(state)
-    }
-
-    var presentedState: PresentedState<State>
-
     public var wrappedValue: State? {
         get { self.presentedState.state }
         set { self.presentedState.state = newValue }
     }
-
     public var projectedValue: PresentedState<State> {
         get { self.presentedState }
         set { self.presentedState = newValue }
@@ -32,7 +25,7 @@ public enum PresentedState<State> {
 }
 
 extension PresentedState {
-    var state: State? {
+    public var state: State? {
         get {
             switch self {
             case .dismissed: return nil
@@ -43,35 +36,15 @@ extension PresentedState {
         }
         set {
             switch (self, newValue) {
+            case (.dismissed, .some(let value)): self = .presenting(value)
             case (.presenting, .some(let value)): self = .presenting(value)
             case (.presented, .some(let value)): self = .presented(value)
             case (.dismissing, .some(let value)): self = .dismissing(value)
-            case (.dismissed, .some(let value)): self = .presenting(value)
-            case (_, .none): self = .dismissed
+            case (.dismissed, .none): self = .dismissed
+            case (.presenting(let state), .none): self = .dismissing(state)
+            case (.presented(let state), .none): self = .dismissing(state)
+            case (.dismissing, .none): self = .dismissed
             }
-        }
-    }
-    mutating func next(with state: State?) {
-        switch (self, state) {
-        case (.dismissed, .some(let value)):
-            self = .presenting(value)
-        case (.dismissed, .none):
-            self = .dismissed
-
-        case (.presenting, .some(let value)):
-            self = .presented(value)
-        case (.presenting(let value), .none):
-            self = .dismissing(value)
-
-        case (.presented, .some(let value)):
-            self = .presented(value)
-        case (.presented(let value), .none):
-            self = .dismissing(value)
-
-        case (.dismissing, .some(let value)):
-            self = .presenting(value)
-        case (.dismissing, .none):
-            self = .dismissed
         }
     }
 }
@@ -80,19 +53,17 @@ extension Presented: Equatable where State: Equatable {}
 
 extension PresentedState: Equatable where State: Equatable {}
 
-//public enum PresenterAction<Action> {
-//    case present
-//    case onDismiss
-//    case onDismissComplete
-//    case wrapped(Action)
-//}
+enum PresentedAction<Action> {
+    case noop
+    case pass(Action)
+}
 
 extension Reducer {
     public func present<LocalState, LocalAction, LocalEnvironment>(
         reducer: Reducer<LocalState, LocalAction, LocalEnvironment>,
         state toLocalState: WritableKeyPath<State, PresentedState<LocalState>>,
         action toLocalAction: CasePath<Action, LocalAction>,
-        onPresent: @escaping (LocalState, LocalEnvironment) -> Effect<Never, Never>,
+        onPresent: @escaping (LocalState, LocalEnvironment) -> Effect<LocalAction, Never>,
         onDismiss: @escaping (LocalState, LocalEnvironment) -> Effect<Never, Never>,
         environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment
     ) -> Self {
@@ -102,14 +73,14 @@ extension Reducer {
             onDismiss: onDismiss
         )
         return Reducer { globalState, globalAction, globalEnvironment in
-            let globalEffects = self.run(
+            let globalEffects: Effect<Action, Never> = self.run(
                 &globalState,
                 globalAction,
                 globalEnvironment
             )
-            let presentationEffects = presentedStateReducer.run(
+            let presentationEffects: Effect<PresentedAction<LocalAction>, Never> = presentedStateReducer.run(
                 &globalState[keyPath: toLocalState],
-                Void(),
+                .noop,
                 toLocalEnvironment(globalEnvironment)
             )
             var localEffects = Effect<LocalAction, Never>.none
@@ -123,8 +94,12 @@ extension Reducer {
             }
             return .merge(
                 globalEffects,
-                presentationEffects.fireAndForget(),
-                localEffects.map(toLocalAction.embed)
+                presentationEffects
+                    .compactMap((/PresentedAction<LocalAction>.pass).extract)
+                    .map(toLocalAction.embed)
+                    .eraseToEffect(),
+                localEffects
+                    .map(toLocalAction.embed)
             )
         }
     }
@@ -134,16 +109,16 @@ func makePresentedStateReducer<State, Action, Environment>(
     reducer: Reducer<State, Action, Environment>,
     state: State.Type = State.self,
     environment: Environment.Type = Environment.self,
-    onPresent: @escaping (State, Environment) -> Effect<Never, Never>,
+    onPresent: @escaping (State, Environment) -> Effect<Action, Never>,
     onDismiss: @escaping (State, Environment) -> Effect<Never, Never>
-) -> Reducer<PresentedState<State>, Void, Environment> {
+) -> Reducer<PresentedState<State>, PresentedAction<Action>, Environment> {
     .init { state, _, environment in
         switch state {
         case .dismissed:
             return .none
         case .presenting(let wrappedState):
             state = .presented(wrappedState)
-            return onPresent(wrappedState, environment).fireAndForget()
+            return onPresent(wrappedState, environment).map(PresentedAction.pass)
         case .presented:
             return .none
         case .dismissing(let wrappedState):

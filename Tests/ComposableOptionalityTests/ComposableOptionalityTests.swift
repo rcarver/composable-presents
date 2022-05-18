@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import Combine
 import XCTest
 
 import ComposableOptionality
@@ -13,15 +14,31 @@ final class ComposableOptionalityTests: XCTestCase {
         }
 
         enum ChildAction: Equatable {
-            case aged
+            case begin
+            case cancel
+            case setAge(Int)
         }
 
-        let ChildReducer = Reducer<ChildState, ChildAction, ()>.combine(
+        struct ChildEnvironment {
+            var years: () -> Effect<Int, Never>
+            var mainQueue: AnySchedulerOf<DispatchQueue>
+        }
+
+        enum ChildEffect {}
+
+        let ChildReducer = Reducer<ChildState, ChildAction, ChildEnvironment>.combine(
             Reducer { state, action, environment in
                 switch action {
-                case .aged:
-                    state.age += 1
+                case .setAge(let age):
+                    state.age = age
                     return .none
+                case .begin:
+                    return environment.years()
+                        .receive(on: environment.mainQueue)
+                        .eraseToEffect(ChildAction.setAge)
+                        .cancellable(id: ChildEffect.self)
+                case .cancel:
+                    return .cancel(id: ChildEffect.self)
                 }
             }
         )
@@ -36,12 +53,18 @@ final class ComposableOptionalityTests: XCTestCase {
             case child(ChildAction)
         }
 
-        let ParentReducer = Reducer<ParentState, ParentAction, ()>{ state, action, environment in
+        struct ParentEnvironment {
+            var years: () -> Effect<Int, Never>
+            var mainQueue: AnySchedulerOf<DispatchQueue>
+        }
+
+        let ParentReducer = Reducer<ParentState, ParentAction, ParentEnvironment>{ state, action, environment in
             switch action {
             case .born:
                 state.child = .init(name: "John", age: 0)
                 return .none
             case .died:
+                state.child = nil
                 return .none
             case .child:
                 return .none
@@ -52,31 +75,47 @@ final class ComposableOptionalityTests: XCTestCase {
                 state: \.$child,
                 action: /ParentAction.child,
                 onPresent: { state, environment in
-                    print("PRESENT")
-                    return .none
+                    return Effect(value: .begin)
                 },
                 onDismiss: { state, environment in
-                    print("DISMISS")
-                    return .none
+                    return .cancel(id: ChildEffect.self)
                 },
-                environment: { _ in () }
+                environment: { .init(years: $0.years, mainQueue: $0.mainQueue) }
             )
+
+        let mainQueue = DispatchQueue.test
 
         let store = TestStore(
             initialState: .init(),
             reducer: ParentReducer,
-            environment: ()
+            environment: .init(
+                years: {
+                    (1..<10).publisher
+                        .flatMap(maxPublishers: .max(1)) {
+                            Just($0).delay(for: 1, scheduler: mainQueue)
+                        }
+                        .print("T")
+                        .eraseToEffect()
+                },
+                mainQueue: mainQueue.eraseToAnyScheduler()
+            )
         )
 
         store.send(.born) {
-            print($0)
             $0.$child = .presented(.init(name: "John", age: 0))
         }
 
-        store.send(.child(.aged)) {
-            $0.$child = .presented(.init(name: "John", age: 1))
+        store.receive(.child(.begin))
+
+        mainQueue.advance(by: 1)
+
+        store.receive(.child(.setAge(1))) {
+            $0.$child.state?.age = 1
         }
 
+        store.send(.died) {
+            $0.$child = .dismissed
+        }
     }
 
     func test_design() {
