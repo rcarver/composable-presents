@@ -23,7 +23,7 @@ final class ComposableOptionalityTests: XCTestCase {
         var mainQueue: AnySchedulerOf<DispatchQueue>
     }
 
-    enum PersonEffect {}
+    struct PersonEffect: Hashable { let id: AnyHashable }
 
     let PersonReducer = Reducer<PersonState, PersonAction, PersonEnvironment>.combine(
         Reducer { state, action, environment in
@@ -35,9 +35,9 @@ final class ComposableOptionalityTests: XCTestCase {
                 return environment.years()
                     .receive(on: environment.mainQueue)
                     .eraseToEffect(PersonAction.setAge)
-                    .cancellable(id: PersonEffect.self)
+                    .cancellable(id: PersonEffect(id: state.id))
             case .cancel:
-                return .cancel(id: PersonEffect.self)
+                return .cancel(id: PersonEffect(id: state.id))
             }
         }
     )
@@ -106,7 +106,6 @@ final class ComposableOptionalityTests: XCTestCase {
         store.send(.born) {
             $0.$person = .presented(.init(name: "John", age: 0))
         }
-
         store.receive(.person(.begin))
 
         mainQueue.advance(by: 1)
@@ -185,7 +184,6 @@ final class ComposableOptionalityTests: XCTestCase {
                 .presented(.init(name: "John", age: 0))
             ]
         }
-
         store.receive(.person(id: "John", action: .begin))
 
         mainQueue.advance(by: 1)
@@ -193,17 +191,45 @@ final class ComposableOptionalityTests: XCTestCase {
             $0.people[id: "John"]?.age = 1
         }
 
+        store.send(.born("Mary")) {
+            $0.$people = [
+                .presented(.init(name: "John", age: 1)),
+                .presented(.init(name: "Mary", age: 0))
+            ]
+        }
+        store.receive(.person(id: "Mary", action: .begin))
+
         mainQueue.advance(by: 1)
         store.receive(.person(id: "John", action: .setAge(2))) {
             $0.people[id: "John"]?.age = 2
         }
+        store.receive(.person(id: "Mary", action: .setAge(1))) {
+            $0.people[id: "Mary"]?.age = 1
+        }
 
         store.send(.died("John")) {
             $0.$people = [
-                .cancelling(.init(name: "John", age: 2))
+                .cancelling(.init(name: "John", age: 2)),
+                .presented(.init(name: "Mary", age: 1))
             ]
         }
         store.receive(.person(id: "John", action: .cancel)) {
+            $0.$people = [
+                .presented(.init(name: "Mary", age: 1))
+            ]
+        }
+
+        mainQueue.advance(by: 1)
+        store.receive(.person(id: "Mary", action: .setAge(2))) {
+            $0.people[id: "Mary"]?.age = 2
+        }
+
+        store.send(.died("Mary")) {
+            $0.$people = [
+                .cancelling(.init(name: "Mary", age: 2))
+            ]
+        }
+        store.receive(.person(id: "Mary", action: .cancel)) {
             $0.$people = []
         }
     }
