@@ -22,6 +22,7 @@ public enum PresentedState<State> {
     case presenting(State)
     case presented(State)
     case dismissing(State)
+    case cancelling(State)
 }
 
 extension PresentedState {
@@ -32,6 +33,7 @@ extension PresentedState {
             case .presenting(let state): return state
             case .presented(let state): return state
             case .dismissing(let state): return state
+            case .cancelling(let state): return state
             }
         }
         set {
@@ -40,10 +42,12 @@ extension PresentedState {
             case (.presenting, .some(let value)): self = .presenting(value)
             case (.presented, .some(let value)): self = .presented(value)
             case (.dismissing, .some(let value)): self = .dismissing(value)
+            case (.cancelling, .some(let value)): self = .cancelling(value)
             case (.dismissed, .none): self = .dismissed
             case (.presenting(let state), .none): self = .dismissing(state)
             case (.presented(let state), .none): self = .dismissing(state)
             case (.dismissing, .none): self = .dismissed
+            case (.cancelling(let state), .none): self = .cancelling(state)
             }
         }
     }
@@ -67,63 +71,95 @@ extension Reducer {
         onDismiss: @escaping (LocalState, LocalEnvironment) -> Effect<Never, Never>,
         environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment
     ) -> Self {
-        let presentedStateReducer = makePresentedStateReducer(
+        present(
             reducer: reducer,
-            onPresent: onPresent,
-            onDismiss: onDismiss
+            presenter: Presenter { state, action, environment in
+                switch action {
+                case .present:
+                    return onPresent(state, environment)
+                case .dismiss:
+                    return onDismiss(state, environment).fireAndForget()
+                }
+            },
+            state: toLocalState,
+            action: toLocalAction,
+            environment: toLocalEnvironment
         )
+    }
+    public func present<LocalState, LocalAction, LocalEnvironment>(
+        reducer: Reducer<LocalState, LocalAction, LocalEnvironment>,
+        presenter: Presenter<LocalState, LocalAction, LocalEnvironment>,
+        state toLocalState: WritableKeyPath<State, PresentedState<LocalState>>,
+        action toLocalAction: CasePath<Action, LocalAction>,
+        environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment
+    ) -> Self {
         return Reducer { globalState, globalAction, globalEnvironment in
             let globalEffects: Effect<Action, Never> = self.run(
                 &globalState,
                 globalAction,
                 globalEnvironment
             )
-            let presentationEffects: Effect<PresentedAction<LocalAction>, Never> = presentedStateReducer.run(
+            let presentationEffects = presenter.present(
                 &globalState[keyPath: toLocalState],
-                .noop,
                 toLocalEnvironment(globalEnvironment)
             )
             var localEffects = Effect<LocalAction, Never>.none
-            if let action = toLocalAction.extract(from: globalAction), var state = globalState[keyPath: toLocalState].state {
-                localEffects = reducer.run(
-                    &state,
-                    action,
-                    toLocalEnvironment(globalEnvironment)
-                )
-                globalState[keyPath: toLocalState].state = state
+            if let action = toLocalAction.extract(from: globalAction) {
+                if var state = globalState[keyPath: toLocalState].state {
+                    localEffects = reducer.run(
+                        &state,
+                        action,
+                        toLocalEnvironment(globalEnvironment)
+                    )
+                    globalState[keyPath: toLocalState].state = state
+                } else {
+                    print("WARNING: action `\(action)` was received while state is not presented")
+                }
             }
+            let dismisssalEffects = presenter.dismiss(
+                &globalState[keyPath: toLocalState],
+                toLocalEnvironment(globalEnvironment)
+            )
             return .merge(
                 globalEffects,
-                presentationEffects
-                    .compactMap((/PresentedAction<LocalAction>.pass).extract)
-                    .map(toLocalAction.embed)
-                    .eraseToEffect(),
-                localEffects
-                    .map(toLocalAction.embed)
+                presentationEffects.map(toLocalAction.embed),
+                localEffects.map(toLocalAction.embed),
+                dismisssalEffects.map(toLocalAction.embed)
             )
         }
     }
 }
 
-func makePresentedStateReducer<State, Action, Environment>(
-    reducer: Reducer<State, Action, Environment>,
-    state: State.Type = State.self,
-    environment: Environment.Type = Environment.self,
-    onPresent: @escaping (State, Environment) -> Effect<Action, Never>,
-    onDismiss: @escaping (State, Environment) -> Effect<Never, Never>
-) -> Reducer<PresentedState<State>, PresentedAction<Action>, Environment> {
-    .init { state, _, environment in
+extension Presenter {
+    func present(_ state: inout PresentedState<State>, _ environment: Environment) -> Effect<Action, Never> {
         switch state {
         case .dismissed:
             return .none
         case .presenting(let wrappedState):
             state = .presented(wrappedState)
-            return onPresent(wrappedState, environment).map(PresentedAction.pass)
+            return self.presenter(wrappedState, .present, environment)
+        case .presented:
+            return .none
+        case .dismissing:
+            return .none
+        case .cancelling:
+            return .none
+        }
+    }
+    func dismiss(_ state: inout PresentedState<State>, _ environment: Environment) -> Effect<Action, Never> {
+        switch state {
+        case .dismissed:
+            return .none
+        case .presenting:
+            return .none
         case .presented:
             return .none
         case .dismissing(let wrappedState):
+            state = .cancelling(wrappedState)
+            return self.presenter(wrappedState, .dismiss, environment)
+        case .cancelling:
             state = .dismissed
-            return onDismiss(wrappedState, environment).fireAndForget()
+            return .none
         }
     }
 }

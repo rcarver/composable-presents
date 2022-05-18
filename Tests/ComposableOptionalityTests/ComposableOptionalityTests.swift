@@ -43,6 +43,15 @@ final class ComposableOptionalityTests: XCTestCase {
             }
         )
 
+        let ChildPresenter = Presenter<ChildState, ChildAction, ChildEnvironment> { state, action, environment in
+            switch action {
+            case .present:
+                return Effect(value: .begin)
+            case .dismiss:
+                return Effect(value: .cancel)
+            }
+        }
+
         struct ParentState: Equatable {
             @Presented var child: ChildState?
         }
@@ -72,14 +81,9 @@ final class ComposableOptionalityTests: XCTestCase {
         }
             .present(
                 reducer: ChildReducer,
+                presenter: ChildPresenter,
                 state: \.$child,
                 action: /ParentAction.child,
-                onPresent: { state, environment in
-                    return Effect(value: .begin)
-                },
-                onDismiss: { state, environment in
-                    return .cancel(id: ChildEffect.self)
-                },
                 environment: { .init(years: $0.years, mainQueue: $0.mainQueue) }
             )
 
@@ -94,7 +98,6 @@ final class ComposableOptionalityTests: XCTestCase {
                         .flatMap(maxPublishers: .max(1)) {
                             Just($0).delay(for: 1, scheduler: mainQueue)
                         }
-                        .print("T")
                         .eraseToEffect()
                 },
                 mainQueue: mainQueue.eraseToAnyScheduler()
@@ -108,12 +111,19 @@ final class ComposableOptionalityTests: XCTestCase {
         store.receive(.child(.begin))
 
         mainQueue.advance(by: 1)
-
         store.receive(.child(.setAge(1))) {
             $0.$child.state?.age = 1
         }
 
+        mainQueue.advance(by: 1)
+        store.receive(.child(.setAge(2))) {
+            $0.$child.state?.age = 2
+        }
+
         store.send(.died) {
+            $0.$child = .cancelling(.init(name: "John", age: 2))
+        }
+        store.receive(.child(.cancel)) {
             $0.$child = .dismissed
         }
     }
