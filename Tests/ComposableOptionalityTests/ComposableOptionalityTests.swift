@@ -6,76 +6,78 @@ import ComposableOptionality
 
 final class ComposableOptionalityTests: XCTestCase {
 
-    func test_design_single() {
+    struct ChildState: Equatable {
+        var name: String
+        var age: Int
+    }
 
-        struct ChildState: Equatable {
-            var name: String
-            var age: Int
-        }
+    enum ChildAction: Equatable, LongRunningAction {
+        case begin
+        case cancel
+        case setAge(Int)
+    }
 
-        enum ChildAction: Equatable, LongRunningAction {
-            case begin
-            case cancel
-            case setAge(Int)
-        }
+    struct ChildEnvironment {
+        var years: () -> Effect<Int, Never>
+        var mainQueue: AnySchedulerOf<DispatchQueue>
+    }
 
-        struct ChildEnvironment {
-            var years: () -> Effect<Int, Never>
-            var mainQueue: AnySchedulerOf<DispatchQueue>
-        }
+    enum ChildEffect {}
 
-        enum ChildEffect {}
-
-        let ChildReducer = Reducer<ChildState, ChildAction, ChildEnvironment>.combine(
-            Reducer { state, action, environment in
-                switch action {
-                case .setAge(let age):
-                    state.age = age
-                    return .none
-                case .begin:
-                    return environment.years()
-                        .receive(on: environment.mainQueue)
-                        .eraseToEffect(ChildAction.setAge)
-                        .cancellable(id: ChildEffect.self)
-                case .cancel:
-                    return .cancel(id: ChildEffect.self)
-                }
+    let ChildReducer = Reducer<ChildState, ChildAction, ChildEnvironment>.combine(
+        Reducer { state, action, environment in
+            switch action {
+            case .setAge(let age):
+                state.age = age
+                return .none
+            case .begin:
+                return environment.years()
+                    .receive(on: environment.mainQueue)
+                    .eraseToEffect(ChildAction.setAge)
+                    .cancellable(id: ChildEffect.self)
+            case .cancel:
+                return .cancel(id: ChildEffect.self)
             }
-        )
+        }
+    )
+
+    func test_design_single() {
 
         struct ParentState: Equatable {
             @Presented var child: ChildState?
         }
-
         enum ParentAction: Equatable {
             case born
             case died
             case child(ChildAction)
         }
-
         struct ParentEnvironment {
             var years: () -> Effect<Int, Never>
             var mainQueue: AnySchedulerOf<DispatchQueue>
-        }
-
-        let ParentReducer = Reducer<ParentState, ParentAction, ParentEnvironment>{ state, action, environment in
-            switch action {
-            case .born:
-                state.child = .init(name: "John", age: 0)
-                return .none
-            case .died:
-                state.child = nil
-                return .none
-            case .child:
-                return .none
+            var child: ChildEnvironment {
+                .init(years: years, mainQueue: mainQueue)
             }
         }
-            .present(
-                reducer: ChildReducer,
-                state: \.$child,
-                action: /ParentAction.child,
-                environment: { .init(years: $0.years, mainQueue: $0.mainQueue) }
-            )
+        let ParentReducer = Reducer<ParentState, ParentAction, ParentEnvironment>.combine(
+            Reducer { state, action, environment in
+                switch action {
+                case .born:
+                    state.child = .init(name: "John", age: 0)
+                    return .none
+                case .died:
+                    state.child = nil
+                    return .none
+                case .child:
+                    return .none
+                }
+            }
+                .present(
+                    reducer: ChildReducer,
+                    state: \.$child,
+                    action: /ParentAction.child,
+                    environment: \.child
+                )
+        )
 
         let mainQueue = DispatchQueue.test
 

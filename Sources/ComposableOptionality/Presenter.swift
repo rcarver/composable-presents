@@ -18,9 +18,26 @@ public enum PresentationAction {
 /// `present` and `dismiss` actions. Its returned effects are always `fireAndForget`
 /// and so do not come back into the system as new state.
 public struct Presenter<State, Action, Environment> {
-    var presenter: (State, PresentationAction, Environment) -> Effect<Action, Never>
+    private let presenter: (State, PresentationAction, Environment) -> Effect<Action, Never>
 
     public init(presenter: @escaping (State, PresentationAction, Environment) -> Effect<Action, Never>) {
         self.presenter = presenter
+    }
+}
+
+extension Presenter {
+    public func run(
+        _ state: State,
+        _ action: PresentationAction,
+        _ environment: Environment
+    ) -> Effect<Action, Never> {
+        self.presenter(state, action, environment)
+    }
+    public func callAsFunction(
+        _ state: State,
+        _ action: PresentationAction,
+        _ environment: Environment
+    ) -> Effect<Action, Never> {
+        self.presenter(state, action, environment)
     }
 }

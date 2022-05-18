@@ -89,27 +89,6 @@ extension Reducer {
     }
     public func present<LocalState, LocalAction, LocalEnvironment>(
         reducer: Reducer<LocalState, LocalAction, LocalEnvironment>,
-        state toLocalState: WritableKeyPath<State, PresentedState<LocalState>>,
-        action toLocalAction: CasePath<Action, LocalAction>,
-        onPresent: @escaping (LocalState, LocalEnvironment) -> Effect<LocalAction, Never>,
-        onDismiss: @escaping (LocalState, LocalEnvironment) -> Effect<LocalAction, Never>,
-        environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment
-    ) -> Self {
-        present(
-            reducer: reducer,
-            presenter: Presenter { state, action, environment in
-                switch action {
-                case .present: return onPresent(state, environment)
-                case .dismiss: return onDismiss(state, environment)
-                }
-            },
-            state: toLocalState,
-            action: toLocalAction,
-            environment: toLocalEnvironment
-        )
-    }
-    public func present<LocalState, LocalAction, LocalEnvironment>(
-        reducer: Reducer<LocalState, LocalAction, LocalEnvironment>,
         presenter: Presenter<LocalState, LocalAction, LocalEnvironment>,
         state toLocalState: WritableKeyPath<State, PresentedState<LocalState>>,
         action toLocalAction: CasePath<Action, LocalAction>,
@@ -159,7 +138,7 @@ extension Presenter {
             return .none
         case .presenting(let wrappedState):
             state = .presented(wrappedState)
-            return self.presenter(wrappedState, .present, environment)
+            return self.run(wrappedState, .present, environment)
         case .presented:
             return .none
         case .dismissing:
@@ -178,7 +157,7 @@ extension Presenter {
             return .none
         case .dismissing(let wrappedState):
             state = .cancelling(wrappedState)
-            return self.presenter(wrappedState, .dismiss, environment)
+            return self.run(wrappedState, .dismiss, environment)
         case .cancelling:
             state = .dismissed
             return .none
