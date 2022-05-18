@@ -234,29 +234,95 @@ final class ComposableOptionalityTests: XCTestCase {
         }
     }
 
-//    func test_design() {
-//
-//        struct WorldState: Equatable {
-//            var children: IdentifiedArrayOf<ChildState> = []
-//        }
-//
-//        struct ChildState: Equatable, Identifiable {
-//            var id: String { name }
-//            var name: String
-//            var age: Int
-//        }
-//
-//        enum WorldAction: Equatable {
-//            case child(id: ChildState.ID, action: ChildAction)
-//        }
-//
-//        enum ChildAction: Equatable {
-//            case birthday
-//        }
-//
-//        let ParentReducer = Reducer<ParentState, ParentAction, ()> { state, action, environment in
-//                .none
-//        }
-//
-//    }
+    func test_casePath() {
+        enum PeopleState: Equatable {
+            case one(PersonState)
+            case two(PersonState)
+        }
+        enum PeopleAction: Equatable {
+            case one(PersonAction)
+            case two(PersonAction)
+        }
+        let PeopleReducer = Reducer<PeopleState, PeopleAction, PersonEnvironment>.combine(
+            PersonReducer.pullback(
+                state: /PeopleState.one,
+                action: /PeopleAction.one,
+                environment: { $0 }
+            )
+        )
+        struct WorldState: Equatable {
+            @Presented var people: PeopleState?
+        }
+        enum WorldAction: Equatable {
+            case firstBorn
+            case secondBorn
+            case died
+            case people(PeopleAction)
+        }
+        struct WorldEnvironment {
+            var years: () -> Effect<Int, Never>
+            var mainQueue: AnySchedulerOf<DispatchQueue>
+            var person: PersonEnvironment {
+                .init(years: years, mainQueue: mainQueue)
+            }
+        }
+        let WorldReducer = Reducer<WorldState, WorldAction, WorldEnvironment>.combine(
+            PeopleReducer.optional().pullback(
+                state: \.people,
+                action: /WorldAction.people,
+                environment: \.person
+            ),
+            Reducer { state, action, environment in
+                switch action {
+                case .firstBorn:
+                    state.people = .one(.init(name: "John", age: 0))
+                    return .none
+                case .secondBorn:
+                    state.people = .two(.init(name: "Mary", age: 0))
+                    return .none
+                case .died:
+                    state.people = nil
+                    return .none
+                case .people:
+                    return .none
+                }
+            }
+                .present(
+                    with: .init(presenter: { state, action, environment in
+                        switch (action, state) {
+                        case (.present, .one): return Effect(value: .one(.begin))
+                        case (.present, .two): return Effect(value: .two(.begin))
+                        case (.dismiss, .one): return Effect(value: .one(.cancel))
+                        case (.dismiss, .two): return Effect(value: .two(.cancel))
+                        }
+                    }),
+                    state: \.$people,
+                    action: /WorldAction.people,
+                    environment: \.person
+                )
+        )
+
+        let mainQueue = DispatchQueue.test
+
+        let store = TestStore(
+            initialState: .init(),
+            reducer: WorldReducer,
+            environment: .init(
+                years: { self.yearsEffect(mainQueue) },
+                mainQueue: mainQueue.eraseToAnyScheduler()
+            )
+        )
+
+        store.send(.firstBorn) {
+            $0.$people = .presented(.one(.init(name: "John", age: 0)))
+        }
+        store.receive(.people(.one(.begin)))
+
+        store.send(.died) {
+            $0.$people = .cancelling(.one(.init(name: "John", age: 0)))
+        }
+        store.receive(.people(.one(.cancel))) {
+            $0.$people = .dismissed
+        }
+    }
 }
