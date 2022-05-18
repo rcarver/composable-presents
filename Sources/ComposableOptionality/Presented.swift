@@ -62,23 +62,45 @@ enum PresentedAction<Action> {
     case pass(Action)
 }
 
+public protocol LongRunningAction {
+    static var begin: Self { get }
+    static var cancel: Self { get }
+}
+
 extension Reducer {
     public func present<LocalState, LocalAction, LocalEnvironment>(
         reducer: Reducer<LocalState, LocalAction, LocalEnvironment>,
         state toLocalState: WritableKeyPath<State, PresentedState<LocalState>>,
         action toLocalAction: CasePath<Action, LocalAction>,
+        environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment
+    ) -> Self where LocalAction: LongRunningAction {
+        present(
+            reducer: reducer,
+            presenter: Presenter { state, action, environment in
+                switch action {
+                case .present: return Effect(value: .begin)
+                case .dismiss: return Effect(value: .cancel)
+                }
+            },
+            state: toLocalState,
+            action: toLocalAction,
+            environment: toLocalEnvironment
+        )
+    }
+    public func present<LocalState, LocalAction, LocalEnvironment>(
+        reducer: Reducer<LocalState, LocalAction, LocalEnvironment>,
+        state toLocalState: WritableKeyPath<State, PresentedState<LocalState>>,
+        action toLocalAction: CasePath<Action, LocalAction>,
         onPresent: @escaping (LocalState, LocalEnvironment) -> Effect<LocalAction, Never>,
-        onDismiss: @escaping (LocalState, LocalEnvironment) -> Effect<Never, Never>,
+        onDismiss: @escaping (LocalState, LocalEnvironment) -> Effect<LocalAction, Never>,
         environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment
     ) -> Self {
         present(
             reducer: reducer,
             presenter: Presenter { state, action, environment in
                 switch action {
-                case .present:
-                    return onPresent(state, environment)
-                case .dismiss:
-                    return onDismiss(state, environment).fireAndForget()
+                case .present: return onPresent(state, environment)
+                case .dismiss: return onDismiss(state, environment)
                 }
             },
             state: toLocalState,
@@ -94,7 +116,7 @@ extension Reducer {
         environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment
     ) -> Self {
         return Reducer { globalState, globalAction, globalEnvironment in
-            let globalEffects: Effect<Action, Never> = self.run(
+            let globalEffects = self.run(
                 &globalState,
                 globalAction,
                 globalEnvironment

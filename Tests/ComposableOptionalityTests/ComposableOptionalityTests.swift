@@ -13,7 +13,7 @@ final class ComposableOptionalityTests: XCTestCase {
             var age: Int
         }
 
-        enum ChildAction: Equatable {
+        enum ChildAction: Equatable, LongRunningAction {
             case begin
             case cancel
             case setAge(Int)
@@ -42,15 +42,6 @@ final class ComposableOptionalityTests: XCTestCase {
                 }
             }
         )
-
-        let ChildPresenter = Presenter<ChildState, ChildAction, ChildEnvironment> { state, action, environment in
-            switch action {
-            case .present:
-                return Effect(value: .begin)
-            case .dismiss:
-                return Effect(value: .cancel)
-            }
-        }
 
         struct ParentState: Equatable {
             @Presented var child: ChildState?
@@ -81,7 +72,6 @@ final class ComposableOptionalityTests: XCTestCase {
         }
             .present(
                 reducer: ChildReducer,
-                presenter: ChildPresenter,
                 state: \.$child,
                 action: /ParentAction.child,
                 environment: { .init(years: $0.years, mainQueue: $0.mainQueue) }
