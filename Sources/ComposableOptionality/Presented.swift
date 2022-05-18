@@ -1,31 +1,55 @@
-import ComposableArchitecture
-
+/// A property wrapper type that captures the lifecycle of state that can be presented and dismissed.
+///
+/// This type captures each phase of that lifecycle, vs. nil and non-nil states.
+//@dynamicMemberLookup
 @propertyWrapper
 public struct Presented<State> {
-    var presentedState: PresentedState<State>
+    var presentedState: PresentationPhase<State>
 
     public init() {
         self.presentedState = .dismissed
     }
     public var wrappedValue: State? {
         get { self.presentedState.state }
-        set { self.presentedState.state = newValue }
+        set { self.presentedState.activate(with: newValue) }
     }
-    public var projectedValue: PresentedState<State> {
+    public var projectedValue: PresentationPhase<State> {
         get { self.presentedState }
         set { self.presentedState = newValue }
     }
+//    public subscript<Subject>(
+//        dynamicMember keyPath: WritableKeyPath<State, Subject>
+//    ) -> BindableState<Subject> {
+//        get { .init(wrappedValue: self.wrappedValue.state?[keyPath: keyPath]) }
+//        set { self.wrappedValue.state?[keyPath: keyPath] = newValue.wrappedValue }
+//    }
 }
 
-public enum PresentedState<State> {
+/// Each phase of the presentation lifecycle.
+public enum PresentationPhase<State> {
+
+    /// The state is dismissed, there is no state.
     case dismissed
+
+    /// The state has begun presenting, it is not yet fully presented.
     case presenting(State)
+
+    /// The state is fully presented.
     case presented(State)
+
+    /// The state is being dismissed.
     case dismissing(State)
+
+    /// The state is performing cleanup work.
     case cancelling(State)
 }
 
-extension PresentedState {
+extension PresentationPhase {
+    /// Get or set the underlying state.
+    ///
+    /// Getting the value returns nil if the phase is `dismissed`.
+    /// Setting the value to non-nil updates the state in the current phase.
+    /// Setting the value to `nil` has no effect.
     public var state: State? {
         get {
             switch self {
@@ -38,129 +62,42 @@ extension PresentedState {
         }
         set {
             switch (self, newValue) {
-            case (.dismissed, .some(let value)): self = .presenting(value)
             case (.presenting, .some(let value)): self = .presenting(value)
             case (.presented, .some(let value)): self = .presented(value)
             case (.dismissing, .some(let value)): self = .dismissing(value)
             case (.cancelling, .some(let value)): self = .cancelling(value)
-            case (.dismissed, .none): self = .dismissed
-            case (.presenting(let state), .none): self = .dismissing(state)
-            case (.presented(let state), .none): self = .dismissing(state)
-            case (.dismissing, .none): self = .dismissed
-            case (.cancelling(let state), .none): self = .cancelling(state)
+            case (.dismissed, _): self = .dismissed
+            case (_, _): break
             }
+        }
+    }
+}
+
+extension PresentationPhase {
+    /// Activate or deactivate the presentation.
+    ///
+    /// * A non-nil state will move the pahse from `dismissed` to `presenting`.
+    /// * A nil state will move to to the next logical dismissal phase.
+    /// * All other permutations will update the stored state with no change of phase.
+    mutating func activate(with newValue: State?) {
+        switch (self, newValue) {
+
+        case (.dismissed, .some(let value)): self = .presenting(value)
+        case (.dismissed, .none): self = .dismissed
+
+        case (.presenting, .some(let value)): self = .presenting(value)
+        case (.presented, .some(let value)): self = .presented(value)
+        case (.dismissing, .some(let value)): self = .dismissing(value)
+        case (.cancelling, .some(let value)): self = .cancelling(value)
+
+        case (.presenting(let state), .none): self = .dismissing(state)
+        case (.presented(let state), .none): self = .dismissing(state)
+        case (.dismissing(let state), .none): self = .cancelling(state)
+        case (.cancelling(let state), .none): self = .cancelling(state)
         }
     }
 }
 
 extension Presented: Equatable where State: Equatable {}
 
-extension PresentedState: Equatable where State: Equatable {}
-
-enum PresentedAction<Action> {
-    case noop
-    case pass(Action)
-}
-
-public protocol LongRunningAction {
-    static var begin: Self { get }
-    static var cancel: Self { get }
-}
-
-extension Reducer {
-    public func present<LocalState, LocalAction, LocalEnvironment>(
-        reducer: Reducer<LocalState, LocalAction, LocalEnvironment>,
-        state toLocalState: WritableKeyPath<State, PresentedState<LocalState>>,
-        action toLocalAction: CasePath<Action, LocalAction>,
-        environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment
-    ) -> Self where LocalAction: LongRunningAction {
-        present(
-            reducer: reducer,
-            presenter: Presenter { state, action, environment in
-                switch action {
-                case .present: return Effect(value: .begin)
-                case .dismiss: return Effect(value: .cancel)
-                }
-            },
-            state: toLocalState,
-            action: toLocalAction,
-            environment: toLocalEnvironment
-        )
-    }
-    public func present<LocalState, LocalAction, LocalEnvironment>(
-        reducer: Reducer<LocalState, LocalAction, LocalEnvironment>,
-        presenter: Presenter<LocalState, LocalAction, LocalEnvironment>,
-        state toLocalState: WritableKeyPath<State, PresentedState<LocalState>>,
-        action toLocalAction: CasePath<Action, LocalAction>,
-        environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment
-    ) -> Self {
-        return Reducer { globalState, globalAction, globalEnvironment in
-            let globalEffects = self.run(
-                &globalState,
-                globalAction,
-                globalEnvironment
-            )
-            let presentationEffects = presenter.present(
-                &globalState[keyPath: toLocalState],
-                toLocalEnvironment(globalEnvironment)
-            )
-            var localEffects = Effect<LocalAction, Never>.none
-            if let action = toLocalAction.extract(from: globalAction) {
-                if var state = globalState[keyPath: toLocalState].state {
-                    localEffects = reducer.run(
-                        &state,
-                        action,
-                        toLocalEnvironment(globalEnvironment)
-                    )
-                    globalState[keyPath: toLocalState].state = state
-                } else {
-                    print("WARNING: action `\(action)` was received while state is not presented")
-                }
-            }
-            let dismisssalEffects = presenter.dismiss(
-                &globalState[keyPath: toLocalState],
-                toLocalEnvironment(globalEnvironment)
-            )
-            return .merge(
-                globalEffects,
-                presentationEffects.map(toLocalAction.embed),
-                localEffects.map(toLocalAction.embed),
-                dismisssalEffects.map(toLocalAction.embed)
-            )
-        }
-    }
-}
-
-extension Presenter {
-    func present(_ state: inout PresentedState<State>, _ environment: Environment) -> Effect<Action, Never> {
-        switch state {
-        case .dismissed:
-            return .none
-        case .presenting(let wrappedState):
-            state = .presented(wrappedState)
-            return self.run(wrappedState, .present, environment)
-        case .presented:
-            return .none
-        case .dismissing:
-            return .none
-        case .cancelling:
-            return .none
-        }
-    }
-    func dismiss(_ state: inout PresentedState<State>, _ environment: Environment) -> Effect<Action, Never> {
-        switch state {
-        case .dismissed:
-            return .none
-        case .presenting:
-            return .none
-        case .presented:
-            return .none
-        case .dismissing(let wrappedState):
-            state = .cancelling(wrappedState)
-            return self.run(wrappedState, .dismiss, environment)
-        case .cancelling:
-            state = .dismissed
-            return .none
-        }
-    }
-}
+extension PresentationPhase: Equatable where State: Equatable {}

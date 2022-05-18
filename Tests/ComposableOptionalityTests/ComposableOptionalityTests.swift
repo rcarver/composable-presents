@@ -59,6 +59,11 @@ final class ComposableOptionalityTests: XCTestCase {
             }
         }
         let ParentReducer = Reducer<ParentState, ParentAction, ParentEnvironment>.combine(
+            ChildReducer.optional().pullback(
+                state: \.child,
+                action: /ParentAction.child,
+                environment: \.child
+            ),
             Reducer { state, action, environment in
                 switch action {
                 case .born:
@@ -72,7 +77,7 @@ final class ComposableOptionalityTests: XCTestCase {
                 }
             }
                 .present(
-                    reducer: ChildReducer,
+                    with: .longRunning(ChildReducer),
                     state: \.$child,
                     action: /ParentAction.child,
                     environment: \.child
