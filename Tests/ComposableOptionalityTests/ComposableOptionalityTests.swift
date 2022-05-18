@@ -6,25 +6,25 @@ import ComposableOptionality
 
 final class ComposableOptionalityTests: XCTestCase {
 
-    struct ChildState: Equatable {
+    struct PersonState: Equatable {
         var name: String
         var age: Int
     }
 
-    enum ChildAction: Equatable, LongRunningAction {
+    enum PersonAction: Equatable, LongRunningAction {
         case begin
         case cancel
         case setAge(Int)
     }
 
-    struct ChildEnvironment {
+    struct PersonEnvironment {
         var years: () -> Effect<Int, Never>
         var mainQueue: AnySchedulerOf<DispatchQueue>
     }
 
-    enum ChildEffect {}
+    enum PersonEffect {}
 
-    let ChildReducer = Reducer<ChildState, ChildAction, ChildEnvironment>.combine(
+    let PersonReducer = Reducer<PersonState, PersonAction, PersonEnvironment>.combine(
         Reducer { state, action, environment in
             switch action {
             case .setAge(let age):
@@ -33,54 +33,54 @@ final class ComposableOptionalityTests: XCTestCase {
             case .begin:
                 return environment.years()
                     .receive(on: environment.mainQueue)
-                    .eraseToEffect(ChildAction.setAge)
-                    .cancellable(id: ChildEffect.self)
+                    .eraseToEffect(PersonAction.setAge)
+                    .cancellable(id: PersonEffect.self)
             case .cancel:
-                return .cancel(id: ChildEffect.self)
+                return .cancel(id: PersonEffect.self)
             }
         }
     )
 
     func test_design_single() {
 
-        struct ParentState: Equatable {
-            @Presented var child: ChildState?
+        struct WorldState: Equatable {
+            @Presented var person: PersonState?
         }
-        enum ParentAction: Equatable {
+        enum WorldAction: Equatable {
             case born
             case died
-            case child(ChildAction)
+            case person(PersonAction)
         }
-        struct ParentEnvironment {
+        struct WorldEnvironment {
             var years: () -> Effect<Int, Never>
             var mainQueue: AnySchedulerOf<DispatchQueue>
-            var child: ChildEnvironment {
+            var person: PersonEnvironment {
                 .init(years: years, mainQueue: mainQueue)
             }
         }
-        let ParentReducer = Reducer<ParentState, ParentAction, ParentEnvironment>.combine(
-            ChildReducer.optional().pullback(
-                state: \.child,
-                action: /ParentAction.child,
-                environment: \.child
+        let WorldReducer = Reducer<WorldState, WorldAction, WorldEnvironment>.combine(
+            PersonReducer.optional().pullback(
+                state: \.person,
+                action: /WorldAction.person,
+                environment: \.person
             ),
             Reducer { state, action, environment in
                 switch action {
                 case .born:
-                    state.child = .init(name: "John", age: 0)
+                    state.person = .init(name: "John", age: 0)
                     return .none
                 case .died:
-                    state.child = nil
+                    state.person = nil
                     return .none
-                case .child:
+                case .person:
                     return .none
                 }
             }
                 .present(
-                    with: .longRunning(ChildReducer),
-                    state: \.$child,
-                    action: /ParentAction.child,
-                    environment: \.child
+                    with: .longRunning(PersonReducer),
+                    state: \.$person,
+                    action: /WorldAction.person,
+                    environment: \.person
                 )
         )
 
@@ -88,7 +88,7 @@ final class ComposableOptionalityTests: XCTestCase {
 
         let store = TestStore(
             initialState: .init(),
-            reducer: ParentReducer,
+            reducer: WorldReducer,
             environment: .init(
                 years: {
                     (1..<10).publisher
@@ -102,52 +102,52 @@ final class ComposableOptionalityTests: XCTestCase {
         )
 
         store.send(.born) {
-            $0.$child = .presented(.init(name: "John", age: 0))
+            $0.$person = .presented(.init(name: "John", age: 0))
         }
 
-        store.receive(.child(.begin))
+        store.receive(.person(.begin))
 
         mainQueue.advance(by: 1)
-        store.receive(.child(.setAge(1))) {
-            $0.$child.state?.age = 1
+        store.receive(.person(.setAge(1))) {
+            $0.$person.state?.age = 1
         }
 
         mainQueue.advance(by: 1)
-        store.receive(.child(.setAge(2))) {
-            $0.$child.state?.age = 2
+        store.receive(.person(.setAge(2))) {
+            $0.$person.state?.age = 2
         }
 
         store.send(.died) {
-            $0.$child = .cancelling(.init(name: "John", age: 2))
+            $0.$person = .cancelling(.init(name: "John", age: 2))
         }
-        store.receive(.child(.cancel)) {
-            $0.$child = .dismissed
+        store.receive(.person(.cancel)) {
+            $0.$person = .dismissed
         }
     }
 
-    func test_design() {
-
-        struct ParentState: Equatable {
-            var children: IdentifiedArrayOf<ChildState> = []
-        }
-
-        struct ChildState: Equatable, Identifiable {
-            var id: String { name }
-            var name: String
-            var age: Int
-        }
-
-        enum ParentAction: Equatable {
-            case child(id: ChildState.ID, action: ChildAction)
-        }
-
-        enum ChildAction: Equatable {
-            case birthday
-        }
-
-        let ParentReducer = Reducer<ParentState, ParentAction, ()> { state, action, environment in
-                .none
-        }
-
-    }
+//    func test_design() {
+//
+//        struct WorldState: Equatable {
+//            var children: IdentifiedArrayOf<ChildState> = []
+//        }
+//
+//        struct ChildState: Equatable, Identifiable {
+//            var id: String { name }
+//            var name: String
+//            var age: Int
+//        }
+//
+//        enum WorldAction: Equatable {
+//            case child(id: ChildState.ID, action: ChildAction)
+//        }
+//
+//        enum ChildAction: Equatable {
+//            case birthday
+//        }
+//
+//        let ParentReducer = Reducer<ParentState, ParentAction, ()> { state, action, environment in
+//                .none
+//        }
+//
+//    }
 }
