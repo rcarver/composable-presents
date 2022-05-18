@@ -318,8 +318,23 @@ final class ComposableOptionalityTests: XCTestCase {
         }
         store.receive(.people(.one(.begin)))
 
+        mainQueue.advance(by: 1)
+        store.receive(.people(.one(.setAge(1)))) {
+            $0.people = .one(.init(name: "John", age: 1))
+        }
+
+        store.send(.secondBorn) {
+            $0.$people = .presented(.two(.init(name: "Mary", age: 0)))
+        }
+        store.receive(.people(.two(.begin)))
+
+        mainQueue.advance(by: 1)
+        store.receive(.people(.two(.setAge(1)))) {
+            $0.people = .one(.init(name: "Mary", age: 1))
+        }
+
         store.send(.died) {
-            $0.$people = .cancelling(.one(.init(name: "John", age: 0)))
+            $0.$people = .cancelling(.two(.init(name: "Mary", age: 1)))
         }
         store.receive(.people(.one(.cancel))) {
             $0.$people = .dismissed

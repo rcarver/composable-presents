@@ -15,10 +15,11 @@ extension Reducer {
                 globalAction,
                 globalEnvironment
             )
-            let presentationEffects = presenter.run(
-                &globalState[keyPath: toLocalState],
-                toLocalEnvironment(globalEnvironment)
-            ).map(toLocalAction.embed)
+            let presentationEffects = globalState[keyPath: toLocalState].run(
+                presenter: presenter,
+                environment: toLocalEnvironment(globalEnvironment),
+                mapAction: toLocalAction.embed
+            )
             return .merge(
                 globalEffects,
                 presentationEffects
@@ -39,16 +40,56 @@ extension Reducer {
                 globalAction,
                 globalEnvironment
             )
-            let presentationEffects = globalState[keyPath: toLocalState].array.ids.map { id in
-                presenter.run(
-                    &globalState[keyPath: toLocalState].array[id: id]!.phase,
-                    toLocalEnvironment(globalEnvironment)
-                ).map { toLocalAction.embed((id, $0)) }
-            }
+            let presentationEffects = globalState[keyPath: toLocalState].run(
+                presenter: presenter,
+                environment: toLocalEnvironment(globalEnvironment),
+                mapAction: { toLocalAction.embed(($0, $1)) }
+            )
             return .merge(
                 globalEffects,
                 .merge(presentationEffects)
             )
         }
+    }
+}
+
+extension PresentationPhase {
+    mutating func run<Action, GlobalAction, Environment>(
+        presenter: Presenter<State, Action, Environment>,
+        environment: Environment,
+        mapAction: @escaping (Action) -> GlobalAction
+    ) -> Effect<GlobalAction, Never> {
+        switch self {
+        case .dismissed:
+            return .none
+        case .presenting(let state):
+            self = .presented(state)
+            return presenter(state, .present, environment).map(mapAction)
+        case .presented:
+            return .none
+        case .dismissing(let state):
+            self = .cancelling(state)
+            return presenter(state, .dismiss, environment).map(mapAction)
+        case .cancelling:
+            self = .dismissed
+            return .none
+        }
+    }
+}
+
+extension IdentifiedArrayOfPresentationPhase {
+    mutating func run<Action, GlobalAction, Environment>(
+        presenter: Presenter<State, Action, Environment>,
+        environment: Environment,
+        mapAction: @escaping (ID, Action) -> GlobalAction
+    ) -> Effect<GlobalAction, Never> {
+        let effects = self.array.ids.map { id in
+            self.array[id: id]!.phase.run(
+                presenter: presenter,
+                environment: environment,
+                mapAction: { mapAction(id, $0) }
+            )
+        }
+        return .merge(effects)
     }
 }

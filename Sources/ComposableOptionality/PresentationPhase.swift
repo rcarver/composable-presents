@@ -1,4 +1,45 @@
 import IdentifiedCollections
+import SwiftUI
+
+enum PresentationTransition<State> where State: Identifiable {
+
+    case stable(PresentationPhase<State>)
+    case changing(from: PresentationPhase<State>, to: PresentationPhase<State>)
+
+    mutating func activate(with newValue: State?) {
+        switch self {
+        case .stable(var phase):
+            switch (phase.state, newValue) {
+            case (.none, .none):
+                break
+            case (.some, .none):
+                phase.activate(with: nil)
+                self = .stable(phase)
+            case (.none, .some(let newValue)):
+                self = .stable(.presenting(newValue))
+            case (.some(let currentValue), .some(let newValue)):
+                if currentValue.id == newValue.id {
+                    phase.activate(with: newValue)
+                    self = .stable(phase)
+                } else {
+                    phase.activate(with: nil)
+                    self = .changing(
+                        from: phase,
+                        to: .presenting(newValue)
+                    )
+                }
+            }
+        case .changing(var from, var to):
+            break
+//            if let id = from.id, id == newValue?.id {
+//
+//            }
+//            if let id = to.id, id == newValue?.id {
+//
+//            }
+        }
+    }
+}
 
 /// Each phase of the presentation lifecycle.
 public enum PresentationPhase<State> {

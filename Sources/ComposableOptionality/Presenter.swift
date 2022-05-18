@@ -43,3 +43,14 @@ extension Presenter {
         }
     }
 }
+
+
+extension Presenter {
+    func callAsFunction(
+        _ state: State,
+        _ action: PresentationAction,
+        _ environment: Environment
+    ) -> Effect<Action, Never> {
+        self.presenter(state, action, environment)
+    }
+}
