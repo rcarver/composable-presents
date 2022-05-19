@@ -83,7 +83,6 @@ extension PresentationPhase {
     }
 }
 
-
 /// Supports 'mutually exclusive' presentation.
 ///
 /// Manages an single presented state or a transition from one state to another.
@@ -106,12 +105,15 @@ extension ExclusivePresentationPhase {
             self = .single(.dismissed)
         }
     }
+    /// The currently presented state.
     var currentState: State? {
         switch self {
         case .single(let phase): return phase.state
         case .transition(from: let phase, to: _): return phase.state
         }
     }
+    /// Activate the current state or start a transition by providing
+    /// a state with a different identifier.
     mutating func activate(with newValue: State?) {
         switch self {
         case .single(var phase):
