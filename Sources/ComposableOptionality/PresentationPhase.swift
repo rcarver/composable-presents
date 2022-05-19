@@ -84,50 +84,57 @@ extension PresentationPhase {
 }
 
 
-/// Supports 'exclusive' presentation.
+/// Supports 'mutually exclusive' presentation.
+///
+/// Manages an single presented state or a transition from one state to another.
+/// Presenting a new state state requires first dismissing the current state.
 public enum ExclusivePresentationPhase<State> where State: Identifiable {
-    case stable(PresentationPhase<State>)
-    case changing(from: PresentationPhase<State>, to: PresentationPhase<State>)
+
+    /// The presentation is a single state.
+    case single(PresentationPhase<State>)
+
+    /// The presentation is transitioning from one state to another.
+    case transition(to: PresentationPhase<State>, from: PresentationPhase<State>)
 }
 
 extension ExclusivePresentationPhase {
     /// Initialize from state, setting initial presentation phase.
     init(_ state: State?, initialPhase: (State) -> PresentationPhase<State>) {
         if let state = state {
-            self = .stable(initialPhase(state))
+            self = .single(initialPhase(state))
         } else {
-            self = .stable(.dismissed)
+            self = .single(.dismissed)
         }
     }
     var currentState: State? {
         switch self {
-        case .stable(let phase): return phase.state
-        case .changing(_, let phase): return phase.state
+        case .single(let phase): return phase.state
+        case .transition(_, let phase): return phase.state
         }
     }
     mutating func activate(with newValue: State?) {
         switch self {
-        case .stable(var phase):
+        case .single(var phase):
             switch (phase.state, newValue) {
             case (.none, .none):
                 break
             case (.some, .none):
                 phase.activate(with: nil)
-                self = .stable(phase)
+                self = .single(phase)
             case (.none, .some(let newValue)):
-                self = .stable(.presenting(newValue))
+                self = .single(.presenting(newValue))
             case (.some(let currentValue), .some(let newValue)):
                 if currentValue.id == newValue.id {
                     phase.activate(with: newValue)
-                    self = .stable(phase)
+                    self = .single(phase)
                 } else {
                     phase.activate(with: nil)
-                    self = .changing(from: phase, to: .presenting(newValue))
+                    self = .transition(to: .presenting(newValue), from: phase)
                 }
             }
-        case .changing(var from, var to):
+        case .transition(var to, var from):
             guard let newValue = newValue else {
-                print("xxx CHANGE TO NIL")
+                print("xxx PRESENT TO NIL")
                 print("xxx >", self)
                 return
             }
@@ -139,7 +146,7 @@ extension ExclusivePresentationPhase {
             default:
                 break
             }
-            self = .changing(from: from, to: to)
+            self = .transition(to: to, from: from)
         }
     }
 }

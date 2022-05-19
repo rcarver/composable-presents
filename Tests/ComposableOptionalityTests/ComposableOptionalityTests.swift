@@ -254,6 +254,11 @@ final class ComposableOptionalityTests: XCTestCase {
                 state: /PeopleState.one,
                 action: /PeopleAction.one,
                 environment: { $0 }
+            ),
+            PersonReducer.pullback(
+                state: /PeopleState.two,
+                action: /PeopleAction.two,
+                environment: { $0 }
             )
         )
         struct WorldState: Equatable {
@@ -320,7 +325,7 @@ final class ComposableOptionalityTests: XCTestCase {
         )
 
         store.send(.firstBorn) {
-            $0.$people = .stable(.presented(.one(.init(name: "John", age: 0))))
+            $0.$people = .single(.presented(.one(.init(name: "John", age: 0))))
         }
         store.receive(.people(.one(.begin)))
 
@@ -330,13 +335,13 @@ final class ComposableOptionalityTests: XCTestCase {
         }
 
         store.send(.secondBorn) {
-            $0.$people = .changing(
-                from: .cancelling(.one(.init(name: "John", age: 1))),
-                to: .presented(.two(.init(name: "Mary", age: 0)))
+            $0.$people = .transition(
+                to: .presenting(.two(.init(name: "Mary", age: 0))),
+                from: .cancelling(.one(.init(name: "John", age: 1)))
             )
         }
         store.receive(.people(.one(.cancel))) {
-            $0.$people = .stable(.presented(.two(.init(name: "Mary", age: 0))))
+            $0.$people = .single(.presented(.two(.init(name: "Mary", age: 0))))
         }
         store.receive(.people(.two(.begin)))
 
@@ -346,10 +351,10 @@ final class ComposableOptionalityTests: XCTestCase {
         }
 
         store.send(.died) {
-            $0.$people = .stable(.cancelling(.two(.init(name: "Mary", age: 1))))
+            $0.$people = .single(.cancelling(.two(.init(name: "Mary", age: 1))))
         }
-        store.receive(.people(.one(.cancel))) {
-            $0.$people = .stable(.dismissed)
+        store.receive(.people(.two(.cancel))) {
+            $0.$people = .single(.dismissed)
         }
     }
 }

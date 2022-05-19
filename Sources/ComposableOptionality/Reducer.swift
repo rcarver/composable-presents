@@ -109,20 +109,21 @@ extension ExclusivePresentationPhase {
         mapAction: @escaping (Action) -> GlobalAction
     ) -> Effect<GlobalAction, Never> {
         switch self {
-        case .stable(var phase):
+        case .single(var phase):
             let effects = phase.run(presenter: presenter, environment: environment, mapAction: mapAction)
-            self = .stable(phase)
+            self = .single(phase)
             return effects
-        case .changing(var from, var to):
+        case .transition(to: var to, from: var from):
             let fromEffects = from.run(presenter: presenter, environment: environment, mapAction: mapAction)
-            let toEffects = to.run(presenter: presenter, environment: environment, mapAction: mapAction)
             switch from {
             case .dismissed:
-                self = .stable(to)
+                let toEffects = to.run(presenter: presenter, environment: environment, mapAction: mapAction)
+                self = .single(to)
+                return toEffects
             default:
-                self = .changing(from: from, to: to)
+                self = .transition(to: to, from: from)
+                return fromEffects
             }
-            return .merge(fromEffects, toEffects)
         }
     }
 }
