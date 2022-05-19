@@ -87,15 +87,15 @@ extension PresentationPhase {
         switch self {
         case .dismissed:
             return .none
-        case .presenting(let state):
+        case .shouldPresent(let state):
             self = .presented(state)
             return presenter(state, .present, environment).map(mapAction)
         case .presented:
             return .none
-        case .dismissing(let state):
-            self = .cancelling(state)
+        case .shouldDismiss(let state):
+            self = .dismissing(state)
             return presenter(state, .dismiss, environment).map(mapAction)
-        case .cancelling:
+        case .dismissing:
             self = .dismissed
             return .none
         }
@@ -117,7 +117,7 @@ extension ExclusivePresentationPhase {
             let fromEffects = from.run(presenter: presenter, environment: environment, mapAction: mapAction)
             switch from {
             case .dismissed:
-                var phase = PresentationPhase.presenting(to)
+                var phase = PresentationPhase.shouldPresent(to)
                 let toEffects = phase.run(presenter: presenter, environment: environment, mapAction: mapAction)
                 self = .single(phase)
                 return toEffects

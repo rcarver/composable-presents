@@ -119,7 +119,7 @@ final class ComposableOptionalityTests: XCTestCase {
         }
 
         store.send(.died) {
-            $0.$person = .cancelling(.init(name: "John", age: 2))
+            $0.$person = .dismissing(.init(name: "John", age: 2))
         }
         store.receive(.person(.cancel)) {
             $0.$person = .dismissed
@@ -209,7 +209,7 @@ final class ComposableOptionalityTests: XCTestCase {
 
         store.send(.died("John")) {
             $0.$people = [
-                .cancelling(.init(name: "John", age: 2)),
+                .dismissing(.init(name: "John", age: 2)),
                 .presented(.init(name: "Mary", age: 1))
             ]
         }
@@ -226,7 +226,7 @@ final class ComposableOptionalityTests: XCTestCase {
 
         store.send(.died("Mary")) {
             $0.$people = [
-                .cancelling(.init(name: "Mary", age: 2))
+                .dismissing(.init(name: "Mary", age: 2))
             ]
         }
         store.receive(.person(id: "Mary", action: .cancel)) {
@@ -336,7 +336,7 @@ final class ComposableOptionalityTests: XCTestCase {
 
         store.send(.secondBorn) {
             $0.$people = .transition(
-                from: .cancelling(.one(.init(name: "John", age: 1))),
+                from: .dismissing(.one(.init(name: "John", age: 1))),
                 to: .two(.init(name: "Mary", age: 0))
             )
         }
@@ -351,7 +351,7 @@ final class ComposableOptionalityTests: XCTestCase {
         }
 
         store.send(.died) {
-            $0.$people = .single(.cancelling(.two(.init(name: "Mary", age: 1))))
+            $0.$people = .single(.dismissing(.two(.init(name: "Mary", age: 1))))
         }
         store.receive(.people(.two(.cancel))) {
             $0.$people = .single(.dismissed)

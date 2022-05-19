@@ -29,7 +29,7 @@ public struct PresentedCase<State> where State: Identifiable {
     private var value: ExclusivePresentationPhase<State>
 
     public init(wrappedValue: State?) {
-        self.value = .init(wrappedValue, initialPhase: PresentationPhase.presenting)
+        self.value = .init(wrappedValue, initialPhase: PresentationPhase.shouldPresent)
     }
     public var wrappedValue: State? {
         get { value.currentState }
@@ -49,7 +49,7 @@ public struct PresentedEach<State> where State: Identifiable {
     private var value: IdentifiedArrayOfPresentationPhaseOf<State>
 
     public init(wrappedValue: IdentifiedArrayOf<State>) {
-        self.value = .init(identifiedStates: wrappedValue, initialPhase: PresentationPhase.presenting)
+        self.value = .init(identifiedStates: wrappedValue, initialPhase: PresentationPhase.shouldPresent)
     }
     public var wrappedValue: IdentifiedArrayOf<State> {
         get { value.identifiedStates }

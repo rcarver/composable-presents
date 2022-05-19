@@ -29,15 +29,15 @@ extension Presenter {
         switch phase {
         case .dismissed:
             return .none
-        case .presenting(let state):
+        case .shouldPresent(let state):
             phase = .presented(state)
             return self.presenter(state, .present, environment)
         case .presented:
             return .none
-        case .dismissing(let state):
-            phase = .cancelling(state)
+        case .shouldDismiss(let state):
+            phase = .dismissing(state)
             return self.presenter(state, .dismiss, environment)
-        case .cancelling:
+        case .dismissing:
             phase = .dismissed
             return .none
         }

@@ -7,17 +7,17 @@ public enum PresentationPhase<State> {
     /// The state is dismissed, there is no state.
     case dismissed
 
-    /// The state has begun presenting, it is not yet fully presented.
-    case presenting(State)
+    /// The presentation should transition from `dismissed` to `presented`.
+    case shouldPresent(State)
 
     /// The state is fully presented.
     case presented(State)
 
-    /// The state is being dismissed.
-    case dismissing(State)
+    /// The presentation should trasition from `presented` to `dismissing`.
+    case shouldDismiss(State)
 
-    /// The state is performing cleanup work.
-    case cancelling(State)
+    /// The state is dismissing, performing cleanup work.
+    case dismissing(State)
 }
 
 extension PresentationPhase {
@@ -30,18 +30,18 @@ extension PresentationPhase {
         get {
             switch self {
             case .dismissed: return nil
-            case .presenting(let state): return state
+            case .shouldPresent(let state): return state
             case .presented(let state): return state
+            case .shouldDismiss(let state): return state
             case .dismissing(let state): return state
-            case .cancelling(let state): return state
             }
         }
         set {
             switch (self, newValue) {
-            case (.presenting, .some(let value)): self = .presenting(value)
+            case (.shouldPresent, .some(let value)): self = .shouldPresent(value)
             case (.presented, .some(let value)): self = .presented(value)
+            case (.shouldDismiss, .some(let value)): self = .shouldDismiss(value)
             case (.dismissing, .some(let value)): self = .dismissing(value)
-            case (.cancelling, .some(let value)): self = .cancelling(value)
             case (.dismissed, _): self = .dismissed
             case (_, _): break
             }
@@ -60,25 +60,25 @@ extension PresentationPhase {
 
             // Move out of dismisssed
 
-        case (.dismissed, .some(let value)): self = .presenting(value)
+        case (.dismissed, .some(let value)): self = .shouldPresent(value)
 
             // Update state in place
 
-        case (.presenting, .some(let value)): self = .presenting(value)
+        case (.shouldPresent, .some(let value)): self = .shouldPresent(value)
         case (.presented, .some(let value)): self = .presented(value)
+        case (.shouldDismiss, .some(let value)): self = .shouldDismiss(value)
         case (.dismissing, .some(let value)): self = .dismissing(value)
-        case (.cancelling, .some(let value)): self = .cancelling(value)
 
             // Move out of presenting
 
-        case (.presenting(let state), .none): self = .dismissing(state)
-        case (.presented(let state), .none): self = .dismissing(state)
+        case (.shouldPresent(let state), .none): self = .shouldDismiss(state)
+        case (.presented(let state), .none): self = .shouldDismiss(state)
 
             // Don't change phase while in the process of dismissing
 
         case (.dismissed, .none): break
+        case (.shouldDismiss, .none): break
         case (.dismissing, .none): break
-        case (.cancelling, .none): break
         }
     }
 }
@@ -122,7 +122,7 @@ extension ExclusivePresentationPhase {
                 phase.activate(with: nil)
                 self = .single(phase)
             case (.none, .some(let newValue)):
-                self = .single(.presenting(newValue))
+                self = .single(.shouldPresent(newValue))
             case (.some(let currentValue), .some(let newValue)):
                 if currentValue.id == newValue.id {
                     phase.activate(with: newValue)
