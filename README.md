@@ -16,6 +16,11 @@ cancelled before the state becomes nil.
 This dance of cancelling effects, then setting state to nil is error-prone
 and requires additional lifecycle actions to get right.
 
+Presentation is often coupled with *navigation* but they're two separate issues.
+Navigation is a related state change of the UI, often modal, but not always. 
+`ComposablePresents` provides a set of SwiftUI navigation helpers modeled 
+after [SwiftUINavigation](https://github.com/pointfreeco/swiftui-navigation).
+
 ## Basics
 
 To make this easier, `ComposablePresents` provides a set of property wrappers
@@ -95,7 +100,7 @@ struct PersonState: Equatable {
   var age: Int
 }
 
-// ⭐️ Action implements `LongRunningAction`, allowing it to be used
+// 🎁 Action implements `LongRunningAction`, allowing it to be used
 // directly as a presenter.
 enum PersonAction: Equatable, LongRunningAction {
   case begin
@@ -117,14 +122,14 @@ let personReducer = Reducer<PersonState, PersonAction, PersonEnvironment>.combin
       state.age = age
       return .none
   
-    // ⭐️ For `LongRunningAction`, start any effects.
+    // 🎁 For `LongRunningAction`, start any effects.
     case .begin:
       return environment.years()
         .receive(on: environment.mainQueue)
         .eraseToEffect(PersonAction.setAge)
         .cancellable(id: PersonEffect.self)
         
-    // ⭐️ For `LongRunningAction`, cancel any effects.
+    // 🎁 For `LongRunningAction`, cancel any effects.
     case .cancel:
       return .cancel(id: PersonEffect.self)
     }
@@ -136,7 +141,7 @@ let personReducer = Reducer<PersonState, PersonAction, PersonEnvironment>.combin
 
 ```swift
 struct WorldState: Equatable {
-  // ⭐️ Property wrapper for presenting any state
+  // 🎁 Property wrapper for presenting any state
   @PresentsAny var person: PersonState?
 }
 
@@ -162,23 +167,23 @@ let reducer = Reducer<WorldState, WorldAction, WorldEnvironment>.combine(
   Reducer { state, action, environment in
     switch action {
     case .born:
-      // ⭐️ Set state to an honest value, triggering presentation 
+      // 🎁 Set state to an honest value, triggering presentation 
       state.person = .init(name: "John", age: 0)
       return .none
     case .died:
-      // ⭐️ Set state to an nil value, triggering dismissal
+      // 🎁 Set state to an nil value, triggering dismissal
       state.person = nil
       return .none
     case .person:
       return .none
     }
   }
-    // ⭐️ Attach `presents` reducer to property wrapper.
+    // 🎁 Attach `presents` reducer to property wrapper.
     .presents(
       state: \.$person,
       action: /WorldAction.person,
       environment: \.person,
-      // ⭐️ Convert `personReducer` to `Presenter` because it 
+      // 🎁 Convert `personReducer` to `Presenter` because it 
       // implements `LongRunningAction`
       presenter: .longRunning(personReducer)
     )
@@ -218,6 +223,10 @@ beyond what the reducer defines.
 not feed back into the system (use `.fireAndforget` and `.cancel`) 
 because the state will be nil. 
 
+## Navigation
+
+TODO
+
 ## Testing
 
 TODO
@@ -225,9 +234,10 @@ TODO
 ## Other libraries
 
 This library builds on much frustration in this area of [ComposableArchitecture](https://github.com/pointfreeco/swift-composable-architecture/), 
-which is still an incredible framework that I use every day.
+which is an incredible library that I use every day.
 
 * [ComposablePresentation](https://github.com/darrarski/swift-composable-presentation)
+* [SwiftUINavigation](https://github.com/pointfreeco/swiftui-navigation)
 
 ## License
 
