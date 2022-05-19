@@ -251,114 +251,6 @@ final class IdentifiableIntegrationTests: XCTestCase {
         }
     }
 
-    func testPresentsEach() {
-        struct WorldState: Equatable {
-            @PresentsEach var people: IdentifiedArrayOf<PersonState> = []
-        }
-        enum WorldAction: Equatable {
-            case born(PersonState.ID)
-            case died(PersonState.ID)
-            case person(id: PersonState.ID, action: PersonAction)
-        }
-        struct WorldEnvironment {
-            var years: () -> Effect<Int, Never>
-            var mainQueue: AnySchedulerOf<DispatchQueue>
-            var person: PersonEnvironment {
-                .init(years: years, mainQueue: mainQueue)
-            }
-        }
-        let reducer = Reducer<WorldState, WorldAction, WorldEnvironment>.combine(
-            personReducer.forEach(
-                state: \.people,
-                action: /WorldAction.person,
-                environment: \.person
-            ),
-            Reducer { state, action, environment in
-                switch action {
-                case .born(let name):
-                    state.people.append(.init(name: name, age: 0))
-                    return .none
-                case .died(let name):
-                    state.people.remove(id: name)
-                    return .none
-                case .person:
-                    return .none
-                }
-            }
-                .presents(
-                    state: \.$people,
-                    action: /WorldAction.person,
-                    environment: \.person,
-                    presenter: .longRunning(personReducer)
-                )
-        )
-
-        let mainQueue = DispatchQueue.test
-
-        let store = TestStore(
-            initialState: .init(),
-            reducer: reducer,
-            environment: .init(
-                years: { yearsEffect(mainQueue) },
-                mainQueue: mainQueue.eraseToAnyScheduler()
-            )
-        )
-
-        store.send(.born("John")) {
-            $0.$people = [
-                .presented(.init(name: "John", age: 0))
-            ]
-        }
-        store.receive(.person(id: "John", action: .begin))
-
-        mainQueue.advance(by: 1)
-        store.receive(.person(id: "John", action: .setAge(1))) {
-            $0.people[id: "John"]?.age = 1
-        }
-
-        store.send(.born("Mary")) {
-            $0.$people = [
-                .presented(.init(name: "John", age: 1)),
-                .presented(.init(name: "Mary", age: 0))
-            ]
-        }
-        store.receive(.person(id: "Mary", action: .begin))
-
-        mainQueue.advance(by: 1)
-        store.receive(.person(id: "John", action: .setAge(2))) {
-            $0.people[id: "John"]?.age = 2
-        }
-        store.receive(.person(id: "Mary", action: .setAge(1))) {
-            $0.people[id: "Mary"]?.age = 1
-        }
-
-        store.send(.died("John")) {
-            $0.$people = [
-                .dismissing(.init(name: "John", age: 2)),
-                .presented(.init(name: "Mary", age: 1))
-            ]
-        }
-        store.receive(.person(id: "John", action: .cancel)) {
-            $0.$people = [
-                .presented(.init(name: "Mary", age: 1))
-            ]
-        }
-
-        mainQueue.advance(by: 1)
-        store.receive(.person(id: "Mary", action: .setAge(2))) {
-            $0.people[id: "Mary"]?.age = 2
-        }
-
-        store.send(.died("Mary")) {
-            $0.$people = [
-                .dismissing(.init(name: "Mary", age: 2))
-            ]
-        }
-        store.receive(.person(id: "Mary", action: .cancel)) {
-            $0.$people = []
-        }
-    }
-
     func testPresentsCase() {
         enum PeopleState: Equatable, CaseIdentifiable {
             case one(PersonState)
@@ -480,6 +372,114 @@ final class IdentifiableIntegrationTests: XCTestCase {
         }
         store.receive(.people(.two(.cancel))) {
             $0.$people = .single(.dismissed)
+        }
+    }
+
+    func testPresentsEach() {
+        struct WorldState: Equatable {
+            @PresentsEach var people: IdentifiedArrayOf<PersonState> = []
+        }
+        enum WorldAction: Equatable {
+            case born(PersonState.ID)
+            case died(PersonState.ID)
+            case person(id: PersonState.ID, action: PersonAction)
+        }
+        struct WorldEnvironment {
+            var years: () -> Effect<Int, Never>
+            var mainQueue: AnySchedulerOf<DispatchQueue>
+            var person: PersonEnvironment {
+                .init(years: years, mainQueue: mainQueue)
+            }
+        }
+        let reducer = Reducer<WorldState, WorldAction, WorldEnvironment>.combine(
+            personReducer.forEach(
+                state: \.people,
+                action: /WorldAction.person,
+                environment: \.person
+            ),
+            Reducer { state, action, environment in
+                switch action {
+                case .born(let name):
+                    state.people.append(.init(name: name, age: 0))
+                    return .none
+                case .died(let name):
+                    state.people.remove(id: name)
+                    return .none
+                case .person:
+                    return .none
+                }
+            }
+                .presents(
+                    state: \.$people,
+                    action: /WorldAction.person,
+                    environment: \.person,
+                    presenter: .longRunning(personReducer)
+                )
+        )
+
+        let mainQueue = DispatchQueue.test
+
+        let store = TestStore(
+            initialState: .init(),
+            reducer: reducer,
+            environment: .init(
+                years: { yearsEffect(mainQueue) },
+                mainQueue: mainQueue.eraseToAnyScheduler()
+            )
+        )
+
+        store.send(.born("John")) {
+            $0.$people = [
+                .presented(.init(name: "John", age: 0))
+            ]
+        }
+        store.receive(.person(id: "John", action: .begin))
+
+        mainQueue.advance(by: 1)
+        store.receive(.person(id: "John", action: .setAge(1))) {
+            $0.people[id: "John"]?.age = 1
+        }
+
+        store.send(.born("Mary")) {
+            $0.$people = [
+                .presented(.init(name: "John", age: 1)),
+                .presented(.init(name: "Mary", age: 0))
+            ]
+        }
+        store.receive(.person(id: "Mary", action: .begin))
+
+        mainQueue.advance(by: 1)
+        store.receive(.person(id: "John", action: .setAge(2))) {
+            $0.people[id: "John"]?.age = 2
+        }
+        store.receive(.person(id: "Mary", action: .setAge(1))) {
+            $0.people[id: "Mary"]?.age = 1
+        }
+
+        store.send(.died("John")) {
+            $0.$people = [
+                .dismissing(.init(name: "John", age: 2)),
+                .presented(.init(name: "Mary", age: 1))
+            ]
+        }
+        store.receive(.person(id: "John", action: .cancel)) {
+            $0.$people = [
+                .presented(.init(name: "Mary", age: 1))
+            ]
+        }
+
+        mainQueue.advance(by: 1)
+        store.receive(.person(id: "Mary", action: .setAge(2))) {
+            $0.people[id: "Mary"]?.age = 2
+        }
+
+        store.send(.died("Mary")) {
+            $0.$people = [
+                .dismissing(.init(name: "Mary", age: 2))
+            ]
+        }
+        store.receive(.person(id: "Mary", action: .cancel)) {
+            $0.$people = []
         }
     }
 }
