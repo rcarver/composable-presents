@@ -3,7 +3,7 @@ import SwiftUI
 import ComposablePresents
 import ComposableArchitecture
 
-public typealias PresentableState = PresentsCase
+public typealias PresentableState = PresentsOne
 
 public protocol PresentableAction {
     associatedtype State
@@ -23,26 +23,25 @@ public struct PresentingAction<Root>: Equatable {
 }
 
 extension PresentingAction {
-    public static func set<Value, ID: Hashable>(
+    public static func set<Value>(
         _ keyPath: WritableKeyPath<Root, ExclusivePresentationPhase<Value>>,
-        value: Value,
-        id: KeyPath<Value, ID>
+        value: Value
     ) -> Self
-    where Value: Equatable {
+    where Value: Equatable, Value: Identifiable {
         .init(
             keyPath: keyPath,
-            set: { $0[keyPath: keyPath].activate(with: value, id: id) },
+            set: { $0[keyPath: keyPath].activate(with: value) },
             value: value,
             valueIsEqualTo: { $0 as? Value == value }
         )
     }
-    public static func dismiss<Value, ID: Hashable>(
-        _ keyPath: WritableKeyPath<Root, ExclusivePresentationPhase<Value>>,
-        id: KeyPath<Value, ID>
-    ) -> Self {
+    public static func dismiss<Value>(
+        _ keyPath: WritableKeyPath<Root, ExclusivePresentationPhase<Value>>
+    ) -> Self
+    where Value: Identifiable {
         .init(
             keyPath: keyPath,
-            set: { $0[keyPath: keyPath].activate(with: nil, id: id) },
+            set: { $0[keyPath: keyPath].activate(with: nil) },
             value: nil,
             valueIsEqualTo: { _ in true }
         )

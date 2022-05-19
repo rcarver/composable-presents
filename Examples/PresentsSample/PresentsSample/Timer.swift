@@ -51,15 +51,6 @@ enum TimerOption: Equatable {
     case slow(TimerState)
 }
 
-extension TimerOption: CaseIdentifiable {
-    var caseIdentity: AnyHashable {
-        switch self {
-        case .fast: return "fast"
-        case .slow: return "slow"
-        }
-    }
-}
-
 extension TimerOption: Identifiable {
     var id: AnyHashable {
         switch self {

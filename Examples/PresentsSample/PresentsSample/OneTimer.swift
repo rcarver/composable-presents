@@ -97,7 +97,7 @@ struct OneTimer_Previews: PreviewProvider {
 }
 
 struct OneTimerState: Equatable {
-    @PresentsCase var timer: TimerOption?
+    @PresentsOne var timer: TimerOption?
 }
 
 enum OneTimerAction {

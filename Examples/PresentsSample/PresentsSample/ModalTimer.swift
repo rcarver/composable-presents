@@ -71,7 +71,7 @@ extension View {
         onDismiss: (() -> Void)? = nil,
         @ViewBuilder content: @escaping (Store<CaseState, CaseAction>) -> Content
     ) -> some View
-    where Content: View, Action: PresentableAction, Action.State == State, EnumState: CaseIdentifiable {
+    where Content: View, Action: PresentableAction, Action.State == State, EnumState: Identifiable {
         func getCaseState(_ state: State) -> CaseState? {
             guard let enumState = state[keyPath: toEnumState].currentState else { return nil }
             return toCaseState.extract(from: enumState)
@@ -83,7 +83,7 @@ extension View {
                         get: { viewStore.state },
                         set: {
                             if !$0 && viewStore.state {
-                                viewStore.send(.presents(.dismiss(toEnumState, id: \.caseIdentity)))
+                                viewStore.send(.presents(.dismiss(toEnumState)))
                             }
                         }
                     )
@@ -131,7 +131,7 @@ struct ModalTimer_Previews: PreviewProvider {
 }
 
 struct ModalTimerState: Equatable {
-    @PresentsCase var timer: TimerOption?
+    @PresentsOne var timer: TimerOption?
 }
 
 enum ModalTimerAction: PresentableAction {
