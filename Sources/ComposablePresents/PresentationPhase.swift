@@ -114,7 +114,7 @@ extension ExclusivePresentationPhase {
     }
     /// Activate the current state or start a transition by providing
     /// a state with a different identifier.
-    public mutating func activate<ID: Hashable>(with newValue: State?, id: KeyPath<State, ID>) {
+    mutating func activate<ID: Hashable>(with newValue: State?, id: KeyPath<State, ID>) {
         switch self {
         case .single(var phase):
             switch (phase.state, newValue) {
@@ -140,6 +140,14 @@ extension ExclusivePresentationPhase {
             }
             self = .transition(from: from, to: to)
         }
+    }
+}
+
+extension ExclusivePresentationPhase where State: Identifiable {
+    /// Activate the current state or start a transition by providing
+    /// a state with a different identifier.
+    public mutating func activate(with newValue: State?) {
+        self.activate(with: newValue, id: \.id)
     }
 }
 

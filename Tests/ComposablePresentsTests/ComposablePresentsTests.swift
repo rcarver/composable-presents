@@ -155,9 +155,9 @@ final class IdentifiableIntegrationTests: XCTestCase {
         }
     )
 
-    func testPresentsID() {
+    func testPresentsOne() {
         struct WorldState: Equatable {
-            @PresentsID var person: PersonState?
+            @PresentsOne var person: PersonState?
         }
         enum WorldAction: Equatable {
             case johnBorn
@@ -251,11 +251,11 @@ final class IdentifiableIntegrationTests: XCTestCase {
         }
     }
 
-    func testPresentsCase() {
-        enum PeopleState: Equatable, CaseIdentifiable {
+    func testPresentsOne_enum() {
+        enum PeopleState: Equatable, Identifiable {
             case one(PersonState)
             case two(PersonState)
-            var caseIdentity: AnyHashable {
+            var id: AnyHashable {
                 switch self {
                 case .one(let value): return value.id
                 case .two(let value): return value.id
@@ -279,7 +279,7 @@ final class IdentifiableIntegrationTests: XCTestCase {
             )
         )
         struct WorldState: Equatable {
-            @PresentsCase var people: PeopleState?
+            @PresentsOne var people: PeopleState?
         }
         enum WorldAction: Equatable {
             case firstBorn

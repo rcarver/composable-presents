@@ -64,13 +64,7 @@ Variations of the property wrapper support patterns for modeling optional state.
 ```swift
 /// Perform presentation when the value moves from nil to non-nil, 
 /// or if the ID of the value changes. 
-@PresentsID var value: SomeIdentifiableValue?
-```
-
-```swift
-/// Perform presentation when the value moves from nil to non-nil, 
-/// or if the case of the enum changes.
-@PresentsCase var value: SomeEnumValue?
+@PresentsOne var value: SomeIdentifiableValue?
 ```
 
 ```swift
@@ -78,9 +72,20 @@ Variations of the property wrapper support patterns for modeling optional state.
 @PresentsEach var value: IdentifiedArrayOf<SomeValue> = []
 ```
 
+Note that `@PresentsOne` supports both enum and struct types that implement `Identifiable`.
+An enum can implement `Identifiable` fairly easily, for example:
+
+```swift
+extension MyEnum: Identifiable {
+  var id: AnyHashable {
+    case .firstCase(let value): return value.id
+    case .secondCase: return "second"
+  }
+}
+
 ## Example
 
-Following is a simple example using all features of the library.
+Following is an example using all features of the library.
 
 **The child/presented domain** —
 
