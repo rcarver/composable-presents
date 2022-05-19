@@ -17,6 +17,7 @@
 		C44DF527283618A8007901E7 /* OneTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44DF526283618A8007901E7 /* OneTimer.swift */; };
 		C44DF529283686E7007901E7 /* ModalTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44DF528283686E7007901E7 /* ModalTimer.swift */; };
 		C44DF52B28369C7B007901E7 /* Presentable.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44DF52A28369C7B007901E7 /* Presentable.swift */; };
+		C44DF52D2836D640007901E7 /* Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44DF52C2836D640007901E7 /* Navigation.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -30,6 +31,7 @@
 		C44DF526283618A8007901E7 /* OneTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneTimer.swift; sourceTree = "<group>"; };
 		C44DF528283686E7007901E7 /* ModalTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModalTimer.swift; sourceTree = "<group>"; };
 		C44DF52A28369C7B007901E7 /* Presentable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presentable.swift; sourceTree = "<group>"; };
+		C44DF52C2836D640007901E7 /* Navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Navigation.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,6 +74,7 @@
 				C44DF526283618A8007901E7 /* OneTimer.swift */,
 				C44DF5242836182C007901E7 /* Timer.swift */,
 				C44DF52A28369C7B007901E7 /* Presentable.swift */,
+				C44DF52C2836D640007901E7 /* Navigation.swift */,
 				C44DF50F28360E33007901E7 /* Assets.xcassets */,
 				C44DF51128360E33007901E7 /* Preview Content */,
 			);
@@ -180,6 +183,7 @@
 			files = (
 				C44DF527283618A8007901E7 /* OneTimer.swift in Sources */,
 				C44DF5252836182C007901E7 /* Timer.swift in Sources */,
+				C44DF52D2836D640007901E7 /* Navigation.swift in Sources */,
 				C44DF529283686E7007901E7 /* ModalTimer.swift in Sources */,
 				C44DF50E28360E30007901E7 /* ManyTimersView.swift in Sources */,
 				C44DF50C28360E30007901E7 /* PresentsSampleApp.swift in Sources */,

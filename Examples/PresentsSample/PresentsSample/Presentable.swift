@@ -3,8 +3,6 @@ import SwiftUI
 import ComposablePresents
 import ComposableArchitecture
 
-public typealias PresentableState = PresentsOne
-
 public protocol PresentableAction {
     associatedtype State
     static func presents(_ action: PresentingAction<State>) -> Self
@@ -23,6 +21,7 @@ public struct PresentingAction<Root>: Equatable {
 }
 
 extension PresentingAction {
+    /// Set the state, triggering new presentation.
     public static func set<Value>(
         _ keyPath: WritableKeyPath<Root, ExclusivePresentationPhase<Value>>,
         value: Value
@@ -35,6 +34,7 @@ extension PresentingAction {
             valueIsEqualTo: { $0 as? Value == value }
         )
     }
+    /// Dismiss the state.
     public static func dismiss<Value>(
         _ keyPath: WritableKeyPath<Root, ExclusivePresentationPhase<Value>>
     ) -> Self
