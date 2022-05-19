@@ -16,7 +16,6 @@
 		C44DF5252836182C007901E7 /* Timer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44DF5242836182C007901E7 /* Timer.swift */; };
 		C44DF527283618A8007901E7 /* OneTimerVIew.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44DF526283618A8007901E7 /* OneTimerVIew.swift */; };
 		C44DF529283686E7007901E7 /* ModalTimerOptionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44DF528283686E7007901E7 /* ModalTimerOptionView.swift */; };
-		C44DF52B28369C7B007901E7 /* Presentable.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44DF52A28369C7B007901E7 /* Presentable.swift */; };
 		C44DF52D2836D640007901E7 /* Navigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44DF52C2836D640007901E7 /* Navigation.swift */; };
 		C44DF52F2836DD85007901E7 /* ModalTimerIdView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44DF52E2836DD85007901E7 /* ModalTimerIdView.swift */; };
 /* End PBXBuildFile section */
@@ -31,7 +30,6 @@
 		C44DF5242836182C007901E7 /* Timer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Timer.swift; sourceTree = "<group>"; };
 		C44DF526283618A8007901E7 /* OneTimerVIew.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneTimerVIew.swift; sourceTree = "<group>"; };
 		C44DF528283686E7007901E7 /* ModalTimerOptionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModalTimerOptionView.swift; sourceTree = "<group>"; };
-		C44DF52A28369C7B007901E7 /* Presentable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presentable.swift; sourceTree = "<group>"; };
 		C44DF52C2836D640007901E7 /* Navigation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Navigation.swift; sourceTree = "<group>"; };
 		C44DF52E2836DD85007901E7 /* ModalTimerIdView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModalTimerIdView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -76,7 +74,6 @@
 				C44DF52E2836DD85007901E7 /* ModalTimerIdView.swift */,
 				C44DF528283686E7007901E7 /* ModalTimerOptionView.swift */,
 				C44DF5242836182C007901E7 /* Timer.swift */,
-				C44DF52A28369C7B007901E7 /* Presentable.swift */,
 				C44DF52C2836D640007901E7 /* Navigation.swift */,
 				C44DF50F28360E33007901E7 /* Assets.xcassets */,
 				C44DF51128360E33007901E7 /* Preview Content */,
@@ -191,7 +188,6 @@
 				C44DF50E28360E30007901E7 /* ManyTimersView.swift in Sources */,
 				C44DF52F2836DD85007901E7 /* ModalTimerIdView.swift in Sources */,
 				C44DF50C28360E30007901E7 /* PresentsSampleApp.swift in Sources */,
-				C44DF52B28369C7B007901E7 /* Presentable.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -9,6 +9,25 @@ extension Reducer {
         environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment,
         presenter: Presenter<LocalState, LocalAction, LocalEnvironment>
     ) -> Self {
+        self._presents(state: toLocalState, action: toLocalAction, environment: toLocalEnvironment, presenter: presenter)
+    }
+
+    /// Manage presentation and dismissal lifecycle for optional state.
+    public func presents<LocalState, LocalAction, LocalEnvironment>(
+        state toLocalState: WritableKeyPath<State, PresentationPhase<LocalState>>,
+        action toLocalAction: CasePath<Action, LocalAction>,
+        environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment,
+        presenter: Presenter<LocalState, LocalAction, LocalEnvironment>
+    ) -> Self where Action: PresentableAction, Action.State == State {
+        self._presents(state: toLocalState, action: toLocalAction, environment: toLocalEnvironment, presenter: presenter).presentable()
+    }
+
+    private func _presents<LocalState, LocalAction, LocalEnvironment>(
+        state toLocalState: WritableKeyPath<State, PresentationPhase<LocalState>>,
+        action toLocalAction: CasePath<Action, LocalAction>,
+        environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment,
+        presenter: Presenter<LocalState, LocalAction, LocalEnvironment>
+    ) -> Self {
         .init { globalState, globalAction, globalEnvironment in
             let globalEffects = self.run(
                 &globalState,
@@ -25,6 +44,19 @@ extension Reducer {
                 presentationEffects
             )
         }
+    }
+}
+
+extension Reducer {
+
+    /// Manage presentation and dismissal lifecycle for mutually exclusive state.
+    public func presents<LocalState, LocalAction, LocalEnvironment>(
+        state toLocalState: WritableKeyPath<State, ExclusivePresentationPhase<LocalState>>,
+        action toLocalAction: CasePath<Action, LocalAction>,
+        environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment,
+        presenter: Presenter<LocalState, LocalAction, LocalEnvironment>
+    ) -> Self {
+        self._presents(state: toLocalState, action: toLocalAction, environment: toLocalEnvironment, presenter: presenter)
     }
 
     /// Manage presentation and dismissal lifecycle for mutually exclusive state.
@@ -33,7 +65,16 @@ extension Reducer {
         action toLocalAction: CasePath<Action, LocalAction>,
         environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment,
         presenter: Presenter<LocalState, LocalAction, LocalEnvironment>
-    ) -> Self{
+    ) -> Self where Action: PresentableAction, Action.State == State {
+        self._presents(state: toLocalState, action: toLocalAction, environment: toLocalEnvironment, presenter: presenter).presentable()
+    }
+
+    private func _presents<LocalState, LocalAction, LocalEnvironment>(
+        state toLocalState: WritableKeyPath<State, ExclusivePresentationPhase<LocalState>>,
+        action toLocalAction: CasePath<Action, LocalAction>,
+        environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment,
+        presenter: Presenter<LocalState, LocalAction, LocalEnvironment>
+    ) -> Self {
         .init { globalState, globalAction, globalEnvironment in
             let globalEffects = self.run(
                 &globalState,
@@ -51,9 +92,33 @@ extension Reducer {
             )
         }
     }
+}
+
+
+extension Reducer {
 
     /// Manage presentation and dismissal lifecycle for each state.
     public func presents<LocalState, LocalAction, LocalEnvironment, ID>(
+        state toLocalState: WritableKeyPath<State, IdentifiedArrayOfPresentationPhase<ID, LocalState>>,
+        action toLocalAction: CasePath<Action, (ID, LocalAction)>,
+        environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment,
+        presenter: Presenter<LocalState, LocalAction, LocalEnvironment>
+    ) -> Self {
+        self._presents(state: toLocalState, action: toLocalAction, environment: toLocalEnvironment, presenter: presenter)
+    }
+
+
+    /// Manage presentation and dismissal lifecycle for each state.
+    public func presents<LocalState, LocalAction, LocalEnvironment, ID>(
+        state toLocalState: WritableKeyPath<State, IdentifiedArrayOfPresentationPhase<ID, LocalState>>,
+        action toLocalAction: CasePath<Action, (ID, LocalAction)>,
+        environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment,
+        presenter: Presenter<LocalState, LocalAction, LocalEnvironment>
+    ) -> Self where Action: PresentableAction, Action.State == State {
+        self._presents(state: toLocalState, action: toLocalAction, environment: toLocalEnvironment, presenter: presenter).presentable()
+    }
+
+    public func _presents<LocalState, LocalAction, LocalEnvironment, ID>(
         state toLocalState: WritableKeyPath<State, IdentifiedArrayOfPresentationPhase<ID, LocalState>>,
         action toLocalAction: CasePath<Action, (ID, LocalAction)>,
         environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment,

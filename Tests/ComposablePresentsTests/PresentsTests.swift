@@ -3,9 +3,21 @@ import ComposablePresents
 import Combine
 import XCTest
 
-final class IntegrationTests: XCTestCase {
+final class PresentsAnyTests: XCTestCase {
+    func testDoesNotRequireIdentifiable() {
+        struct Child: Equatable {}
+        struct Parent {
+            @PresentsAny var child: Child?
+        }
+        let parent = Parent()
+        XCTAssertEqual(parent.$child, .dismissed)
+    }
+}
 
-    struct PersonState: Equatable {
+final class PresentsIntegrationTests: XCTestCase {
+
+    struct PersonState: Equatable, Identifiable {
+        var id: String { name }
         var name: String
         var age: Int
     }
@@ -21,7 +33,7 @@ final class IntegrationTests: XCTestCase {
         var mainQueue: AnySchedulerOf<DispatchQueue>
     }
 
-    enum PersonEffect {}
+    struct PersonEffect: Hashable { let id: AnyHashable }
 
     let personReducer = Reducer<PersonState, PersonAction, PersonEnvironment>.combine(
         Reducer { state, action, environment in
@@ -33,9 +45,9 @@ final class IntegrationTests: XCTestCase {
                 return environment.years()
                     .receive(on: environment.mainQueue)
                     .eraseToEffect(PersonAction.setAge)
-                    .cancellable(id: PersonEffect.self)
+                    .cancellable(id: PersonEffect(id: state.id))
             case .cancel:
-                return .cancel(id: PersonEffect.self)
+                return .cancel(id: PersonEffect(id: state.id))
             }
         }
     )
@@ -115,45 +127,6 @@ final class IntegrationTests: XCTestCase {
             $0.$person = .dismissed
         }
     }
-}
-
-final class IdentifiableIntegrationTests: XCTestCase {
-
-    struct PersonState: Equatable, Identifiable {
-        var id: String { name }
-        var name: String
-        var age: Int
-    }
-
-    enum PersonAction: Equatable, LongRunningAction {
-        case begin
-        case cancel
-        case setAge(Int)
-    }
-
-    struct PersonEnvironment {
-        var years: () -> Effect<Int, Never>
-        var mainQueue: AnySchedulerOf<DispatchQueue>
-    }
-
-    struct PersonEffect: Hashable { let id: AnyHashable }
-
-    let personReducer = Reducer<PersonState, PersonAction, PersonEnvironment>.combine(
-        Reducer { state, action, environment in
-            switch action {
-            case .setAge(let age):
-                state.age = age
-                return .none
-            case .begin:
-                return environment.years()
-                    .receive(on: environment.mainQueue)
-                    .eraseToEffect(PersonAction.setAge)
-                    .cancellable(id: PersonEffect(id: state.id))
-            case .cancel:
-                return .cancel(id: PersonEffect(id: state.id))
-            }
-        }
-    )
 
     func testPresentsOne() {
         struct WorldState: Equatable {
