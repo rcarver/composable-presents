@@ -88,14 +88,6 @@ fileprivate struct TimerView: View {
     }
 }
 
-fileprivate var names = [
-    "Pasta",
-    "Tea",
-    "Coffee",
-    "Workout",
-    "Meditation"
-]
-
 struct OneTimer_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
@@ -103,44 +95,6 @@ struct OneTimer_Previews: PreviewProvider {
         }
     }
 }
-
-enum TimerOption: Equatable {
-    case fast(TimerState)
-    case slow(TimerState)
-}
-
-extension TimerOption: CaseIdentifiable {
-    var caseIdentity: AnyHashable {
-        switch self {
-        case .fast: return "fast"
-        case .slow: return "slow"
-        }
-    }
-}
-
-enum TimerOptionAction {
-    case fast(TimerAction)
-    case slow(TimerAction)
-}
-
-struct TimerOptionEnvironment {
-    var mainQueue: AnySchedulerOf<DispatchQueue>
-    var fastTicks: () -> Effect<Void, Never>
-    var slowTicks: () -> Effect<Void, Never>
-}
-
-let timerOptionReducer = Reducer<TimerOption, TimerOptionAction, TimerOptionEnvironment>.combine(
-    timerReducer.pullback(
-        state: /TimerOption.fast,
-        action: /TimerOptionAction.fast,
-        environment: { .init(ticks: $0.fastTicks, mainQueue: $0.mainQueue) }
-    ),
-    timerReducer.pullback(
-        state: /TimerOption.slow,
-        action: /TimerOptionAction.slow,
-        environment: { .init(ticks: $0.slowTicks, mainQueue: $0.mainQueue) }
-    )
-)
 
 struct OneTimerState: Equatable {
     @PresentsCase var timer: TimerOption?

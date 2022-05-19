@@ -45,3 +45,50 @@ let timerReducer = Reducer<TimerState, TimerAction, TimerEnvironment>.combine(
         }
     }
 )
+
+enum TimerOption: Equatable {
+    case fast(TimerState)
+    case slow(TimerState)
+}
+
+extension TimerOption: CaseIdentifiable {
+    var caseIdentity: AnyHashable {
+        switch self {
+        case .fast: return "fast"
+        case .slow: return "slow"
+        }
+    }
+}
+
+extension TimerOption: Identifiable {
+    var id: AnyHashable {
+        switch self {
+        case .fast: return "fast"
+        case .slow: return "slow"
+        }
+    }
+}
+
+enum TimerOptionAction {
+    case fast(TimerAction)
+    case slow(TimerAction)
+}
+
+struct TimerOptionEnvironment {
+    var mainQueue: AnySchedulerOf<DispatchQueue>
+    var fastTicks: () -> Effect<Void, Never>
+    var slowTicks: () -> Effect<Void, Never>
+}
+
+let timerOptionReducer = Reducer<TimerOption, TimerOptionAction, TimerOptionEnvironment>.combine(
+    timerReducer.pullback(
+        state: /TimerOption.fast,
+        action: /TimerOptionAction.fast,
+        environment: { .init(ticks: $0.fastTicks, mainQueue: $0.mainQueue) }
+    ),
+    timerReducer.pullback(
+        state: /TimerOption.slow,
+        action: /TimerOptionAction.slow,
+        environment: { .init(ticks: $0.slowTicks, mainQueue: $0.mainQueue) }
+    )
+)

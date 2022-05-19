@@ -13,6 +13,10 @@ struct PresentsSampleApp: App {
                     .tabItem {
                         Label("One", systemImage: "timer.square")
                     }
+                ModalTimerView()
+                    .tabItem {
+                        Label("One Modal", systemImage: "arrow.up")
+                    }
             }
         }
     }

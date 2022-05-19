@@ -106,7 +106,7 @@ extension ExclusivePresentationPhase {
         }
     }
     /// The currently presented state.
-    var currentState: State? {
+    public var currentState: State? {
         switch self {
         case .single(let phase): return phase.state
         case .transition(from: let phase, to: _): return phase.state
@@ -114,7 +114,7 @@ extension ExclusivePresentationPhase {
     }
     /// Activate the current state or start a transition by providing
     /// a state with a different identifier.
-    mutating func activate<ID: Hashable>(with newValue: State?, id: KeyPath<State, ID>) {
+    public mutating func activate<ID: Hashable>(with newValue: State?, id: KeyPath<State, ID>) {
         switch self {
         case .single(var phase):
             switch (phase.state, newValue) {
