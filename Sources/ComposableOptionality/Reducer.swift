@@ -27,6 +27,31 @@ extension Reducer {
         }
     }
 
+    /// Manage presentation and dismissal lifecycle for mutually exclusive case state.
+    public func presentCase<LocalState, LocalAction, LocalEnvironment>(
+        with presenter: Presenter<LocalState, LocalAction, LocalEnvironment>,
+        state toLocalState: WritableKeyPath<State, ExclusivePresentationPhase<LocalState>>,
+        action toLocalAction: CasePath<Action, LocalAction>,
+        environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment
+    ) -> Self {
+        .init { globalState, globalAction, globalEnvironment in
+            let globalEffects = self.run(
+                &globalState,
+                globalAction,
+                globalEnvironment
+            )
+            let presentationEffects = globalState[keyPath: toLocalState].run(
+                presenter: presenter,
+                environment: toLocalEnvironment(globalEnvironment),
+                mapAction: toLocalAction.embed
+            )
+            return .merge(
+                globalEffects,
+                presentationEffects
+            )
+        }
+    }
+
     /// Manage presentation and dismissal lifecycle for each state.
     public func presentEach<LocalState, LocalAction, LocalEnvironment, ID>(
         with presenter: Presenter<LocalState, LocalAction, LocalEnvironment>,
@@ -73,6 +98,31 @@ extension PresentationPhase {
         case .cancelling:
             self = .dismissed
             return .none
+        }
+    }
+}
+
+extension ExclusivePresentationPhase {
+    mutating func run<Action, GlobalAction, Environment>(
+        presenter: Presenter<State, Action, Environment>,
+        environment: Environment,
+        mapAction: @escaping (Action) -> GlobalAction
+    ) -> Effect<GlobalAction, Never> {
+        switch self {
+        case .stable(var phase):
+            let effects = phase.run(presenter: presenter, environment: environment, mapAction: mapAction)
+            self = .stable(phase)
+            return effects
+        case .changing(var from, var to):
+            let fromEffects = from.run(presenter: presenter, environment: environment, mapAction: mapAction)
+            let toEffects = to.run(presenter: presenter, environment: environment, mapAction: mapAction)
+            switch from {
+            case .dismissed:
+                self = .stable(to)
+            default:
+                self = .changing(from: from, to: to)
+            }
+            return .merge(fromEffects, toEffects)
         }
     }
 }

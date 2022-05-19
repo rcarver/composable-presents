@@ -235,9 +235,15 @@ final class ComposableOptionalityTests: XCTestCase {
     }
 
     func test_casePath() {
-        enum PeopleState: Equatable {
+        enum PeopleState: Equatable, Identifiable {
             case one(PersonState)
             case two(PersonState)
+            var id: PersonState.ID {
+                switch self {
+                case .one(let value): return value.id
+                case .two(let value): return value.id
+                }
+            }
         }
         enum PeopleAction: Equatable {
             case one(PersonAction)
@@ -251,7 +257,7 @@ final class ComposableOptionalityTests: XCTestCase {
             )
         )
         struct WorldState: Equatable {
-            @Presented var people: PeopleState?
+            @PresentedCase var people: PeopleState?
         }
         enum WorldAction: Equatable {
             case firstBorn
@@ -287,7 +293,7 @@ final class ComposableOptionalityTests: XCTestCase {
                     return .none
                 }
             }
-                .present(
+                .presentCase(
                     with: .init(presenter: { state, action, environment in
                         switch (action, state) {
                         case (.present, .one): return Effect(value: .one(.begin))
@@ -314,7 +320,7 @@ final class ComposableOptionalityTests: XCTestCase {
         )
 
         store.send(.firstBorn) {
-            $0.$people = .presented(.one(.init(name: "John", age: 0)))
+            $0.$people = .stable(.presented(.one(.init(name: "John", age: 0))))
         }
         store.receive(.people(.one(.begin)))
 
@@ -324,20 +330,26 @@ final class ComposableOptionalityTests: XCTestCase {
         }
 
         store.send(.secondBorn) {
-            $0.$people = .presented(.two(.init(name: "Mary", age: 0)))
+            $0.$people = .changing(
+                from: .cancelling(.one(.init(name: "John", age: 1))),
+                to: .presented(.two(.init(name: "Mary", age: 0)))
+            )
+        }
+        store.receive(.people(.one(.cancel))) {
+            $0.$people = .stable(.presented(.two(.init(name: "Mary", age: 0))))
         }
         store.receive(.people(.two(.begin)))
 
         mainQueue.advance(by: 1)
         store.receive(.people(.two(.setAge(1)))) {
-            $0.people = .one(.init(name: "Mary", age: 1))
+            $0.people = .two(.init(name: "Mary", age: 1))
         }
 
         store.send(.died) {
-            $0.$people = .cancelling(.two(.init(name: "Mary", age: 1)))
+            $0.$people = .stable(.cancelling(.two(.init(name: "Mary", age: 1))))
         }
         store.receive(.people(.one(.cancel))) {
-            $0.$people = .dismissed
+            $0.$people = .stable(.dismissed)
         }
     }
 }

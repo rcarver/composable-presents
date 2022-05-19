@@ -21,6 +21,26 @@ public struct Presented<State> {
     }
 }
 
+/// A property wrapper type that captures the lifecycle of an enum of mutually exclusive states.
+///
+/// This type maintains each phase of that lifecycle, vs. nil and non-nil states.
+@propertyWrapper
+public struct PresentedCase<State> where State: Identifiable {
+    private var value: ExclusivePresentationPhase<State>
+
+    public init(wrappedValue: State?) {
+        self.value = .init(wrappedValue, initialPhase: PresentationPhase.presenting)
+    }
+    public var wrappedValue: State? {
+        get { value.currentState }
+        set { value.activate(with: newValue) }
+    }
+    public var projectedValue: ExclusivePresentationPhase<State>  {
+        get { self.value }
+        set { self.value = newValue }
+    }
+}
+
 /// A property wrapper type that captures the lifecycle of an array of states that can be presented and dismissed.
 ///
 /// This type maintains each phase of that lifecycle, vs. nil and non-nil states.
@@ -42,5 +62,7 @@ public struct PresentedEach<State> where State: Identifiable {
 }
 
 extension Presented: Equatable where State: Equatable {}
+
+extension PresentedCase: Equatable where State: Equatable {}
 
 extension PresentedEach: Equatable where State: Equatable {}

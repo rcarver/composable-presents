@@ -1,46 +1,6 @@
 import IdentifiedCollections
 import SwiftUI
 
-enum PresentationTransition<State> where State: Identifiable {
-
-    case stable(PresentationPhase<State>)
-    case changing(from: PresentationPhase<State>, to: PresentationPhase<State>)
-
-    mutating func activate(with newValue: State?) {
-        switch self {
-        case .stable(var phase):
-            switch (phase.state, newValue) {
-            case (.none, .none):
-                break
-            case (.some, .none):
-                phase.activate(with: nil)
-                self = .stable(phase)
-            case (.none, .some(let newValue)):
-                self = .stable(.presenting(newValue))
-            case (.some(let currentValue), .some(let newValue)):
-                if currentValue.id == newValue.id {
-                    phase.activate(with: newValue)
-                    self = .stable(phase)
-                } else {
-                    phase.activate(with: nil)
-                    self = .changing(
-                        from: phase,
-                        to: .presenting(newValue)
-                    )
-                }
-            }
-        case .changing(var from, var to):
-            break
-//            if let id = from.id, id == newValue?.id {
-//
-//            }
-//            if let id = to.id, id == newValue?.id {
-//
-//            }
-        }
-    }
-}
-
 /// Each phase of the presentation lifecycle.
 public enum PresentationPhase<State> {
 
@@ -123,6 +83,69 @@ extension PresentationPhase {
     }
 }
 
+
+/// Supports 'exclusive' presentation.
+public enum ExclusivePresentationPhase<State> where State: Identifiable {
+    case stable(PresentationPhase<State>)
+    case changing(from: PresentationPhase<State>, to: PresentationPhase<State>)
+}
+
+extension ExclusivePresentationPhase {
+    /// Initialize from state, setting initial presentation phase.
+    init(_ state: State?, initialPhase: (State) -> PresentationPhase<State>) {
+        if let state = state {
+            self = .stable(initialPhase(state))
+        } else {
+            self = .stable(.dismissed)
+        }
+    }
+    var currentState: State? {
+        switch self {
+        case .stable(let phase): return phase.state
+        case .changing(_, let phase): return phase.state
+        }
+    }
+    mutating func activate(with newValue: State?) {
+        switch self {
+        case .stable(var phase):
+            switch (phase.state, newValue) {
+            case (.none, .none):
+                break
+            case (.some, .none):
+                phase.activate(with: nil)
+                self = .stable(phase)
+            case (.none, .some(let newValue)):
+                self = .stable(.presenting(newValue))
+            case (.some(let currentValue), .some(let newValue)):
+                if currentValue.id == newValue.id {
+                    phase.activate(with: newValue)
+                    self = .stable(phase)
+                } else {
+                    phase.activate(with: nil)
+                    self = .changing(from: phase, to: .presenting(newValue))
+                }
+            }
+        case .changing(var from, var to):
+            guard let newValue = newValue else {
+                print("xxx CHANGE TO NIL")
+                print("xxx >", self)
+                return
+            }
+            switch newValue.id {
+            case from.state?.id:
+                from.activate(with: newValue)
+            case to.state?.id:
+                to.activate(with: newValue)
+            default:
+                break
+            }
+            self = .changing(from: from, to: to)
+        }
+    }
+}
+
+/// Supports 'each' presentation.
+///
 /// Maintains an ID for the presentation phase, allowing the identification of `dismissed` phase.
 public struct IdentifiedPresentationPhase<ID: Hashable, State>: Identifiable {
     public let id: ID
@@ -195,6 +218,9 @@ public typealias IdentifiedArrayOfPresentationPhaseOf<State> = IdentifiedArrayOf
 
 extension PresentationPhase: Equatable where State: Equatable {}
 
+extension ExclusivePresentationPhase: Equatable where State: Equatable {}
+
 extension IdentifiedPresentationPhase: Equatable where State: Equatable {}
 
 extension IdentifiedArrayOfPresentationPhase: Equatable where State: Equatable {}
+
