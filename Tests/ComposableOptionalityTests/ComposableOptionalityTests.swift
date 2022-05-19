@@ -4,10 +4,9 @@ import XCTest
 
 import ComposableOptionality
 
-final class ComposableOptionalityTests: XCTestCase {
+final class IntegrationTests: XCTestCase {
 
-    struct PersonState: Equatable, Identifiable {
-        var id: String { name }
+    struct PersonState: Equatable {
         var name: String
         var age: Int
     }
@@ -23,7 +22,7 @@ final class ComposableOptionalityTests: XCTestCase {
         var mainQueue: AnySchedulerOf<DispatchQueue>
     }
 
-    struct PersonEffect: Hashable { let id: AnyHashable }
+    enum PersonEffect {}
 
     let PersonReducer = Reducer<PersonState, PersonAction, PersonEnvironment>.combine(
         Reducer { state, action, environment in
@@ -35,24 +34,16 @@ final class ComposableOptionalityTests: XCTestCase {
                 return environment.years()
                     .receive(on: environment.mainQueue)
                     .eraseToEffect(PersonAction.setAge)
-                    .cancellable(id: PersonEffect(id: state.id))
+                    .cancellable(id: PersonEffect.self)
             case .cancel:
-                return .cancel(id: PersonEffect(id: state.id))
+                return .cancel(id: PersonEffect.self)
             }
         }
     )
 
-    func yearsEffect<S: Scheduler>(_ mainQueue: S) -> Effect<Int, Never> {
-        (1..<10).publisher
-            .flatMap(maxPublishers: .max(1)) {
-                Just($0).delay(for: 1, scheduler: mainQueue)
-            }
-            .eraseToEffect()
-    }
-
-    func test_optional() {
+    func testPresentedOptional() {
         struct WorldState: Equatable {
-            @Presented var person: PersonState?
+            @PresentedOptional var person: PersonState?
         }
         enum WorldAction: Equatable {
             case born
@@ -98,7 +89,7 @@ final class ComposableOptionalityTests: XCTestCase {
             initialState: .init(),
             reducer: WorldReducer,
             environment: .init(
-                years: { self.yearsEffect(mainQueue) },
+                years: { yearsEffect(mainQueue) },
                 mainQueue: mainQueue.eraseToAnyScheduler()
             )
         )
@@ -125,8 +116,143 @@ final class ComposableOptionalityTests: XCTestCase {
             $0.$person = .dismissed
         }
     }
+}
 
-    func test_forEach() {
+final class IdentifiableIntegrationTests: XCTestCase {
+
+    struct PersonState: Equatable, Identifiable {
+        var id: String { name }
+        var name: String
+        var age: Int
+    }
+
+    enum PersonAction: Equatable, LongRunningAction {
+        case begin
+        case cancel
+        case setAge(Int)
+    }
+
+    struct PersonEnvironment {
+        var years: () -> Effect<Int, Never>
+        var mainQueue: AnySchedulerOf<DispatchQueue>
+    }
+
+    struct PersonEffect: Hashable { let id: AnyHashable }
+
+    let PersonReducer = Reducer<PersonState, PersonAction, PersonEnvironment>.combine(
+        Reducer { state, action, environment in
+            switch action {
+            case .setAge(let age):
+                state.age = age
+                return .none
+            case .begin:
+                return environment.years()
+                    .receive(on: environment.mainQueue)
+                    .eraseToEffect(PersonAction.setAge)
+                    .cancellable(id: PersonEffect(id: state.id))
+            case .cancel:
+                return .cancel(id: PersonEffect(id: state.id))
+            }
+        }
+    )
+
+    func testPresentedID() {
+        struct WorldState: Equatable {
+            @PresentedID var person: PersonState?
+        }
+        enum WorldAction: Equatable {
+            case johnBorn
+            case maryBorn
+            case died
+            case person(PersonAction)
+        }
+        struct WorldEnvironment {
+            var years: () -> Effect<Int, Never>
+            var mainQueue: AnySchedulerOf<DispatchQueue>
+            var person: PersonEnvironment {
+                .init(years: years, mainQueue: mainQueue)
+            }
+        }
+        let WorldReducer = Reducer<WorldState, WorldAction, WorldEnvironment>.combine(
+            PersonReducer.optional().pullback(
+                state: \.person,
+                action: /WorldAction.person,
+                environment: \.person
+            ),
+            Reducer { state, action, environment in
+                switch action {
+                case .johnBorn:
+                    state.person = .init(name: "John", age: 0)
+                    return .none
+                case .maryBorn:
+                    state.person = .init(name: "Mary", age: 0)
+                    return .none
+                case .died:
+                    state.person = nil
+                    return .none
+                case .person:
+                    return .none
+                }
+            }
+                .present(
+                    with: .longRunning(PersonReducer),
+                    state: \.$person,
+                    action: /WorldAction.person,
+                    environment: \.person
+                )
+        )
+
+        let mainQueue = DispatchQueue.test
+
+        let store = TestStore(
+            initialState: .init(),
+            reducer: WorldReducer,
+            environment: .init(
+                years: { yearsEffect(mainQueue) },
+                mainQueue: mainQueue.eraseToAnyScheduler()
+            )
+        )
+
+        store.send(.johnBorn) {
+            $0.$person = .single(.presented(.init(name: "John", age: 0)))
+        }
+        store.receive(.person(.begin))
+
+        mainQueue.advance(by: 1)
+        store.receive(.person(.setAge(1))) {
+            $0.person?.age = 1
+        }
+
+        mainQueue.advance(by: 1)
+        store.receive(.person(.setAge(2))) {
+            $0.person?.age = 2
+        }
+
+        store.send(.maryBorn) {
+            $0.$person = .transition(
+                from: .dismissing(.init(name: "John", age: 2)),
+                to: .init(name: "Mary", age: 0)
+            )
+        }
+        store.receive(.person(.cancel)) {
+            $0.$person = .single(.presented(.init(name: "Mary", age: 0)))
+        }
+        store.receive(.person(.begin))
+
+        mainQueue.advance(by: 1)
+        store.receive(.person(.setAge(1))) {
+            $0.person?.age = 1
+        }
+
+        store.send(.died) {
+            $0.$person = .single(.dismissing(.init(name: "Mary", age: 1)))
+        }
+        store.receive(.person(.cancel)) {
+            $0.$person = .single(.dismissed)
+        }
+    }
+
+    func testPresentedEach() {
         struct WorldState: Equatable {
             @PresentedEach var people: IdentifiedArrayOf<PersonState> = []
         }
@@ -160,7 +286,7 @@ final class ComposableOptionalityTests: XCTestCase {
                     return .none
                 }
             }
-                .presentEach(
+                .present(
                     with: .longRunning(PersonReducer),
                     state: \.$people,
                     action: /WorldAction.person,
@@ -174,7 +300,7 @@ final class ComposableOptionalityTests: XCTestCase {
             initialState: .init(),
             reducer: WorldReducer,
             environment: .init(
-                years: { self.yearsEffect(mainQueue) },
+                years: { yearsEffect(mainQueue) },
                 mainQueue: mainQueue.eraseToAnyScheduler()
             )
         )
@@ -234,11 +360,11 @@ final class ComposableOptionalityTests: XCTestCase {
         }
     }
 
-    func test_casePath() {
-        enum PeopleState: Equatable, Identifiable {
+    func testPresentedCase() {
+        enum PeopleState: Equatable, CaseIdentifiable {
             case one(PersonState)
             case two(PersonState)
-            var id: PersonState.ID {
+            var caseIdentity: AnyHashable {
                 switch self {
                 case .one(let value): return value.id
                 case .two(let value): return value.id
@@ -298,7 +424,7 @@ final class ComposableOptionalityTests: XCTestCase {
                     return .none
                 }
             }
-                .presentCase(
+                .present(
                     with: .init(presenter: { state, action, environment in
                         switch (action, state) {
                         case (.present, .one): return Effect(value: .one(.begin))
@@ -319,7 +445,7 @@ final class ComposableOptionalityTests: XCTestCase {
             initialState: .init(),
             reducer: WorldReducer,
             environment: .init(
-                years: { self.yearsEffect(mainQueue) },
+                years: { yearsEffect(mainQueue) },
                 mainQueue: mainQueue.eraseToAnyScheduler()
             )
         )
@@ -357,4 +483,12 @@ final class ComposableOptionalityTests: XCTestCase {
             $0.$people = .single(.dismissed)
         }
     }
+}
+
+fileprivate func yearsEffect<S: Scheduler>(_ mainQueue: S) -> Effect<Int, Never> {
+    (1..<10).publisher
+        .flatMap(maxPublishers: .max(1)) {
+            Just($0).delay(for: 1, scheduler: mainQueue)
+        }
+        .eraseToEffect()
 }

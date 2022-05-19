@@ -87,7 +87,7 @@ extension PresentationPhase {
 ///
 /// Manages an single presented state or a transition from one state to another.
 /// Presenting a new state state requires first dismissing the current state.
-public enum ExclusivePresentationPhase<State> where State: Identifiable {
+public enum ExclusivePresentationPhase<State> {
 
     /// The presentation is a single state.
     case single(PresentationPhase<State>)
@@ -114,7 +114,7 @@ extension ExclusivePresentationPhase {
     }
     /// Activate the current state or start a transition by providing
     /// a state with a different identifier.
-    mutating func activate(with newValue: State?) {
+    mutating func activate<ID: Hashable>(with newValue: State?, id: KeyPath<State, ID>) {
         switch self {
         case .single(var phase):
             switch (phase.state, newValue) {
@@ -126,7 +126,7 @@ extension ExclusivePresentationPhase {
             case (.none, .some(let newValue)):
                 self = .single(.shouldPresent(newValue))
             case (.some(let currentValue), .some(let newValue)):
-                if currentValue.id == newValue.id {
+                if currentValue[keyPath: id] == newValue[keyPath: id] {
                     phase.activate(with: newValue)
                     self = .single(phase)
                 } else {
@@ -135,7 +135,7 @@ extension ExclusivePresentationPhase {
                 }
             }
         case .transition(from: var from, to: let to):
-            if from.state?.id == newValue?.id {
+            if from.state?[keyPath: id] == newValue?[keyPath: id] {
                 from.activate(with: newValue)
             }
             self = .transition(from: from, to: to)

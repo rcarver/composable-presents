@@ -2,7 +2,7 @@ import ComposableArchitecture
 
 extension Reducer {
 
-    /// Manage presentation and dismissal lifecycle for the state.
+    /// Manage presentation and dismissal lifecycle for optional state.
     public func present<LocalState, LocalAction, LocalEnvironment>(
         with presenter: Presenter<LocalState, LocalAction, LocalEnvironment>,
         state toLocalState: WritableKeyPath<State, PresentationPhase<LocalState>>,
@@ -27,13 +27,13 @@ extension Reducer {
         }
     }
 
-    /// Manage presentation and dismissal lifecycle for mutually exclusive case state.
-    public func presentCase<LocalState, LocalAction, LocalEnvironment>(
+    /// Manage presentation and dismissal lifecycle for mutually exclusive state.
+    public func present<LocalState, LocalAction, LocalEnvironment>(
         with presenter: Presenter<LocalState, LocalAction, LocalEnvironment>,
         state toLocalState: WritableKeyPath<State, ExclusivePresentationPhase<LocalState>>,
         action toLocalAction: CasePath<Action, LocalAction>,
         environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment
-    ) -> Self {
+    ) -> Self{
         .init { globalState, globalAction, globalEnvironment in
             let globalEffects = self.run(
                 &globalState,
@@ -53,7 +53,7 @@ extension Reducer {
     }
 
     /// Manage presentation and dismissal lifecycle for each state.
-    public func presentEach<LocalState, LocalAction, LocalEnvironment, ID>(
+    public func present<LocalState, LocalAction, LocalEnvironment, ID>(
         with presenter: Presenter<LocalState, LocalAction, LocalEnvironment>,
         state toLocalState: WritableKeyPath<State, IdentifiedArrayOfPresentationPhase<ID, LocalState>>,
         action toLocalAction: CasePath<Action, (ID, LocalAction)>,
@@ -78,7 +78,7 @@ extension Reducer {
     }
 }
 
-extension PresentationPhase {
+fileprivate extension PresentationPhase {
     mutating func run<Action, GlobalAction, Environment>(
         presenter: Presenter<State, Action, Environment>,
         environment: Environment,
@@ -102,7 +102,7 @@ extension PresentationPhase {
     }
 }
 
-extension ExclusivePresentationPhase {
+fileprivate extension ExclusivePresentationPhase {
     mutating func run<Action, GlobalAction, Environment>(
         presenter: Presenter<State, Action, Environment>,
         environment: Environment,
@@ -129,7 +129,7 @@ extension ExclusivePresentationPhase {
     }
 }
 
-extension IdentifiedArrayOfPresentationPhase {
+fileprivate extension IdentifiedArrayOfPresentationPhase {
     mutating func run<Action, GlobalAction, Environment>(
         presenter: Presenter<State, Action, Environment>,
         environment: Environment,
