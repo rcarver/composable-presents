@@ -1,3 +1,4 @@
-# composable-optionality
+# ComposablePresents
 
-A description of this package.
+State-driven presentation and dismissal for [ComposableArchitecture](https://github.com/pointfreeco/swift-composable-architecture/).
+

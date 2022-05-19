@@ -5,9 +5,9 @@ import IdentifiedCollections
 /// that is nil or non-nil.
 ///
 /// This type should only be used when the non-nil value always has the same identity.
-/// If the identity of the non-nil value can change, use `PresentedID`.
+/// If the identity of the non-nil value can change, use `PresentsID`.
 @propertyWrapper
-public struct PresentedOptional<State> {
+public struct PresentsOptional<State> {
     private var value: PresentationPhase<State>
 
     public init() {
@@ -26,7 +26,7 @@ public struct PresentedOptional<State> {
 /// A property wrapper type that captures the presentation lifecycle of mutually
 /// exclusive states differentiated by their `ID`.
 @propertyWrapper
-public struct PresentedID<State> where State: Identifiable {
+public struct PresentsID<State> where State: Identifiable {
     private var value: ExclusivePresentationPhase<State>
 
     public init(wrappedValue: State?) {
@@ -45,7 +45,7 @@ public struct PresentedID<State> where State: Identifiable {
 /// A property wrapper type that captures the presentation lifecycle of mutually
 /// exclusive states differentiated by an enum.
 @propertyWrapper
-public struct PresentedCase<State> where State: CaseIdentifiable {
+public struct PresentsCase<State> where State: CaseIdentifiable {
     private var value: ExclusivePresentationPhase<State>
 
     public init(wrappedValue: State?) {
@@ -68,7 +68,7 @@ public protocol CaseIdentifiable {
 /// A property wrapper type that captures the lifecycle of an array of states that
 /// can each be presented and dismissed individually
 @propertyWrapper
-public struct PresentedEach<State> where State: Identifiable {
+public struct PresentsEach<State> where State: Identifiable {
     private var value: IdentifiedArrayOfPresentationPhaseOf<State>
 
     public init(wrappedValue: IdentifiedArrayOf<State>) {
@@ -84,10 +84,10 @@ public struct PresentedEach<State> where State: Identifiable {
     }
 }
 
-extension PresentedOptional: Equatable where State: Equatable {}
+extension PresentsOptional: Equatable where State: Equatable {}
 
-extension PresentedID: Equatable where State: Equatable {}
+extension PresentsID: Equatable where State: Equatable {}
 
-extension PresentedCase: Equatable where State: Equatable {}
+extension PresentsCase: Equatable where State: Equatable {}
 
-extension PresentedEach: Equatable where State: Equatable {}
+extension PresentsEach: Equatable where State: Equatable {}

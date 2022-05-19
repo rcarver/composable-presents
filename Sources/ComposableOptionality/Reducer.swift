@@ -3,11 +3,11 @@ import ComposableArchitecture
 extension Reducer {
 
     /// Manage presentation and dismissal lifecycle for optional state.
-    public func present<LocalState, LocalAction, LocalEnvironment>(
-        with presenter: Presenter<LocalState, LocalAction, LocalEnvironment>,
+    public func presents<LocalState, LocalAction, LocalEnvironment>(
         state toLocalState: WritableKeyPath<State, PresentationPhase<LocalState>>,
         action toLocalAction: CasePath<Action, LocalAction>,
-        environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment
+        environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment,
+        presenter: Presenter<LocalState, LocalAction, LocalEnvironment>
     ) -> Self {
         .init { globalState, globalAction, globalEnvironment in
             let globalEffects = self.run(
@@ -28,11 +28,11 @@ extension Reducer {
     }
 
     /// Manage presentation and dismissal lifecycle for mutually exclusive state.
-    public func present<LocalState, LocalAction, LocalEnvironment>(
-        with presenter: Presenter<LocalState, LocalAction, LocalEnvironment>,
+    public func presents<LocalState, LocalAction, LocalEnvironment>(
         state toLocalState: WritableKeyPath<State, ExclusivePresentationPhase<LocalState>>,
         action toLocalAction: CasePath<Action, LocalAction>,
-        environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment
+        environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment,
+        presenter: Presenter<LocalState, LocalAction, LocalEnvironment>
     ) -> Self{
         .init { globalState, globalAction, globalEnvironment in
             let globalEffects = self.run(
@@ -53,11 +53,11 @@ extension Reducer {
     }
 
     /// Manage presentation and dismissal lifecycle for each state.
-    public func present<LocalState, LocalAction, LocalEnvironment, ID>(
-        with presenter: Presenter<LocalState, LocalAction, LocalEnvironment>,
+    public func presents<LocalState, LocalAction, LocalEnvironment, ID>(
         state toLocalState: WritableKeyPath<State, IdentifiedArrayOfPresentationPhase<ID, LocalState>>,
         action toLocalAction: CasePath<Action, (ID, LocalAction)>,
-        environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment
+        environment toLocalEnvironment: @escaping (Environment) -> LocalEnvironment,
+        presenter: Presenter<LocalState, LocalAction, LocalEnvironment>
     ) -> Self {
         .init { globalState, globalAction, globalEnvironment in
             let globalEffects = self.run(
@@ -72,7 +72,7 @@ extension Reducer {
             )
             return .merge(
                 globalEffects,
-                .merge(presentationEffects)
+                presentationEffects
             )
         }
     }

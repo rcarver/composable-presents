@@ -41,9 +41,9 @@ final class IntegrationTests: XCTestCase {
         }
     )
 
-    func testPresentedOptional() {
+    func testPresentsOptional() {
         struct WorldState: Equatable {
-            @PresentedOptional var person: PersonState?
+            @PresentsOptional var person: PersonState?
         }
         enum WorldAction: Equatable {
             case born
@@ -57,7 +57,7 @@ final class IntegrationTests: XCTestCase {
                 .init(years: years, mainQueue: mainQueue)
             }
         }
-        let WorldReducer = Reducer<WorldState, WorldAction, WorldEnvironment>.combine(
+        let reducer = Reducer<WorldState, WorldAction, WorldEnvironment>.combine(
             PersonReducer.optional().pullback(
                 state: \.person,
                 action: /WorldAction.person,
@@ -75,11 +75,11 @@ final class IntegrationTests: XCTestCase {
                     return .none
                 }
             }
-                .present(
-                    with: .longRunning(PersonReducer),
+                .presents(
                     state: \.$person,
                     action: /WorldAction.person,
-                    environment: \.person
+                    environment: \.person,
+                    presenter: .longRunning(PersonReducer)
                 )
         )
 
@@ -87,7 +87,7 @@ final class IntegrationTests: XCTestCase {
 
         let store = TestStore(
             initialState: .init(),
-            reducer: WorldReducer,
+            reducer: reducer,
             environment: .init(
                 years: { yearsEffect(mainQueue) },
                 mainQueue: mainQueue.eraseToAnyScheduler()
@@ -156,9 +156,9 @@ final class IdentifiableIntegrationTests: XCTestCase {
         }
     )
 
-    func testPresentedID() {
+    func testPresentsID() {
         struct WorldState: Equatable {
-            @PresentedID var person: PersonState?
+            @PresentsID var person: PersonState?
         }
         enum WorldAction: Equatable {
             case johnBorn
@@ -173,7 +173,7 @@ final class IdentifiableIntegrationTests: XCTestCase {
                 .init(years: years, mainQueue: mainQueue)
             }
         }
-        let WorldReducer = Reducer<WorldState, WorldAction, WorldEnvironment>.combine(
+        let reducer = Reducer<WorldState, WorldAction, WorldEnvironment>.combine(
             PersonReducer.optional().pullback(
                 state: \.person,
                 action: /WorldAction.person,
@@ -194,11 +194,11 @@ final class IdentifiableIntegrationTests: XCTestCase {
                     return .none
                 }
             }
-                .present(
-                    with: .longRunning(PersonReducer),
+                .presents(
                     state: \.$person,
                     action: /WorldAction.person,
-                    environment: \.person
+                    environment: \.person,
+                    presenter: .longRunning(PersonReducer)
                 )
         )
 
@@ -206,7 +206,7 @@ final class IdentifiableIntegrationTests: XCTestCase {
 
         let store = TestStore(
             initialState: .init(),
-            reducer: WorldReducer,
+            reducer: reducer,
             environment: .init(
                 years: { yearsEffect(mainQueue) },
                 mainQueue: mainQueue.eraseToAnyScheduler()
@@ -252,9 +252,9 @@ final class IdentifiableIntegrationTests: XCTestCase {
         }
     }
 
-    func testPresentedEach() {
+    func testPresentsEach() {
         struct WorldState: Equatable {
-            @PresentedEach var people: IdentifiedArrayOf<PersonState> = []
+            @PresentsEach var people: IdentifiedArrayOf<PersonState> = []
         }
         enum WorldAction: Equatable {
             case born(PersonState.ID)
@@ -268,7 +268,7 @@ final class IdentifiableIntegrationTests: XCTestCase {
                 .init(years: years, mainQueue: mainQueue)
             }
         }
-        let WorldReducer = Reducer<WorldState, WorldAction, WorldEnvironment>.combine(
+        let reducer = Reducer<WorldState, WorldAction, WorldEnvironment>.combine(
             PersonReducer.forEach(
                 state: \.people,
                 action: /WorldAction.person,
@@ -286,11 +286,11 @@ final class IdentifiableIntegrationTests: XCTestCase {
                     return .none
                 }
             }
-                .present(
-                    with: .longRunning(PersonReducer),
+                .presents(
                     state: \.$people,
                     action: /WorldAction.person,
-                    environment: \.person
+                    environment: \.person,
+                    presenter: .longRunning(PersonReducer)
                 )
         )
 
@@ -298,7 +298,7 @@ final class IdentifiableIntegrationTests: XCTestCase {
 
         let store = TestStore(
             initialState: .init(),
-            reducer: WorldReducer,
+            reducer: reducer,
             environment: .init(
                 years: { yearsEffect(mainQueue) },
                 mainQueue: mainQueue.eraseToAnyScheduler()
@@ -360,7 +360,7 @@ final class IdentifiableIntegrationTests: XCTestCase {
         }
     }
 
-    func testPresentedCase() {
+    func testPresentsCase() {
         enum PeopleState: Equatable, CaseIdentifiable {
             case one(PersonState)
             case two(PersonState)
@@ -388,7 +388,7 @@ final class IdentifiableIntegrationTests: XCTestCase {
             )
         )
         struct WorldState: Equatable {
-            @PresentedCase var people: PeopleState?
+            @PresentsCase var people: PeopleState?
         }
         enum WorldAction: Equatable {
             case firstBorn
@@ -403,7 +403,7 @@ final class IdentifiableIntegrationTests: XCTestCase {
                 .init(years: years, mainQueue: mainQueue)
             }
         }
-        let WorldReducer = Reducer<WorldState, WorldAction, WorldEnvironment>.combine(
+        let reducer = Reducer<WorldState, WorldAction, WorldEnvironment>.combine(
             PeopleReducer.optional().pullback(
                 state: \.people,
                 action: /WorldAction.people,
@@ -424,18 +424,18 @@ final class IdentifiableIntegrationTests: XCTestCase {
                     return .none
                 }
             }
-                .present(
-                    with: .init(presenter: { state, action, environment in
+                .presents(
+                    state: \.$people,
+                    action: /WorldAction.people,
+                    environment: \.person,
+                    presenter: .init { state, action, environment in
                         switch (action, state) {
                         case (.present, .one): return Effect(value: .one(.begin))
                         case (.present, .two): return Effect(value: .two(.begin))
                         case (.dismiss, .one): return Effect(value: .one(.cancel))
                         case (.dismiss, .two): return Effect(value: .two(.cancel))
                         }
-                    }),
-                    state: \.$people,
-                    action: /WorldAction.people,
-                    environment: \.person
+                    }
                 )
         )
 
@@ -443,7 +443,7 @@ final class IdentifiableIntegrationTests: XCTestCase {
 
         let store = TestStore(
             initialState: .init(),
-            reducer: WorldReducer,
+            reducer: reducer,
             environment: .init(
                 years: { yearsEffect(mainQueue) },
                 mainQueue: mainQueue.eraseToAnyScheduler()
