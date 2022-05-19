@@ -23,7 +23,7 @@ final class IntegrationTests: XCTestCase {
 
     enum PersonEffect {}
 
-    let PersonReducer = Reducer<PersonState, PersonAction, PersonEnvironment>.combine(
+    let personReducer = Reducer<PersonState, PersonAction, PersonEnvironment>.combine(
         Reducer { state, action, environment in
             switch action {
             case .setAge(let age):
@@ -57,7 +57,7 @@ final class IntegrationTests: XCTestCase {
             }
         }
         let reducer = Reducer<WorldState, WorldAction, WorldEnvironment>.combine(
-            PersonReducer.optional().pullback(
+            personReducer.optional().pullback(
                 state: \.person,
                 action: /WorldAction.person,
                 environment: \.person
@@ -78,7 +78,7 @@ final class IntegrationTests: XCTestCase {
                     state: \.$person,
                     action: /WorldAction.person,
                     environment: \.person,
-                    presenter: .longRunning(PersonReducer)
+                    presenter: .longRunning(personReducer)
                 )
         )
 
@@ -138,7 +138,7 @@ final class IdentifiableIntegrationTests: XCTestCase {
 
     struct PersonEffect: Hashable { let id: AnyHashable }
 
-    let PersonReducer = Reducer<PersonState, PersonAction, PersonEnvironment>.combine(
+    let personReducer = Reducer<PersonState, PersonAction, PersonEnvironment>.combine(
         Reducer { state, action, environment in
             switch action {
             case .setAge(let age):
@@ -173,7 +173,7 @@ final class IdentifiableIntegrationTests: XCTestCase {
             }
         }
         let reducer = Reducer<WorldState, WorldAction, WorldEnvironment>.combine(
-            PersonReducer.optional().pullback(
+            personReducer.optional().pullback(
                 state: \.person,
                 action: /WorldAction.person,
                 environment: \.person
@@ -197,7 +197,7 @@ final class IdentifiableIntegrationTests: XCTestCase {
                     state: \.$person,
                     action: /WorldAction.person,
                     environment: \.person,
-                    presenter: .longRunning(PersonReducer)
+                    presenter: .longRunning(personReducer)
                 )
         )
 
@@ -268,7 +268,7 @@ final class IdentifiableIntegrationTests: XCTestCase {
             }
         }
         let reducer = Reducer<WorldState, WorldAction, WorldEnvironment>.combine(
-            PersonReducer.forEach(
+            personReducer.forEach(
                 state: \.people,
                 action: /WorldAction.person,
                 environment: \.person
@@ -289,7 +289,7 @@ final class IdentifiableIntegrationTests: XCTestCase {
                     state: \.$people,
                     action: /WorldAction.person,
                     environment: \.person,
-                    presenter: .longRunning(PersonReducer)
+                    presenter: .longRunning(personReducer)
                 )
         )
 
@@ -375,12 +375,12 @@ final class IdentifiableIntegrationTests: XCTestCase {
             case two(PersonAction)
         }
         let PeopleReducer = Reducer<PeopleState, PeopleAction, PersonEnvironment>.combine(
-            PersonReducer.pullback(
+            personReducer.pullback(
                 state: /PeopleState.one,
                 action: /PeopleAction.one,
                 environment: { $0 }
             ),
-            PersonReducer.pullback(
+            personReducer.pullback(
                 state: /PeopleState.two,
                 action: /PeopleAction.two,
                 environment: { $0 }
