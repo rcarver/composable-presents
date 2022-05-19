@@ -4,15 +4,15 @@
 import PackageDescription
 
 let package = Package(
-    name: "composable-optionality",
+    name: "composable-presents",
     platforms: [
         .iOS(.v15),
         .macOS(.v12)
     ],
     products: [
         .library(
-            name: "ComposableOptionality",
-            targets: ["ComposableOptionality"]),
+            name: "ComposablePresents",
+            targets: ["ComposablePresents"]),
     ],
     dependencies: [
         .package(
@@ -22,14 +22,14 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "ComposableOptionality",
+            name: "ComposablePresents",
             dependencies: [
                 .product(name: "ComposableArchitecture", package: "swift-composable-architecture")
             ]
         ),
         .testTarget(
-            name: "ComposableOptionalityTests",
-            dependencies: ["ComposableOptionality"]
+            name: "ComposablePresentsTests",
+            dependencies: ["ComposablePresents"]
         ),
     ]
 )

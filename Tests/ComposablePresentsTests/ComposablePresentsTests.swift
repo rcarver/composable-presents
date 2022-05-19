@@ -1,8 +1,7 @@
 import ComposableArchitecture
+import ComposablePresents
 import Combine
 import XCTest
-
-import ComposableOptionality
 
 final class IntegrationTests: XCTestCase {
 
