@@ -12,7 +12,8 @@ let package = Package(
     products: [
         .library(
             name: "ComposablePresents",
-            targets: ["ComposablePresents"]),
+            targets: ["ComposablePresents"]
+        ),
     ],
     dependencies: [
         .package(
