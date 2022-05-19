@@ -14,6 +14,7 @@
 		C44DF51D28360F73007901E7 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = C44DF51C28360F73007901E7 /* ComposableArchitecture */; };
 		C44DF52328361040007901E7 /* ComposablePresents in Frameworks */ = {isa = PBXBuildFile; productRef = C44DF52228361040007901E7 /* ComposablePresents */; };
 		C44DF5252836182C007901E7 /* Timer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44DF5242836182C007901E7 /* Timer.swift */; };
+		C44DF527283618A8007901E7 /* OneTimer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44DF526283618A8007901E7 /* OneTimer.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +25,7 @@
 		C44DF51228360E33007901E7 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		C44DF5202836102A007901E7 /* composable-presents */ = {isa = PBXFileReference; lastKnownFileType = wrapper; name = "composable-presents"; path = ../..; sourceTree = "<group>"; };
 		C44DF5242836182C007901E7 /* Timer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Timer.swift; sourceTree = "<group>"; };
+		C44DF526283618A8007901E7 /* OneTimer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OneTimer.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -62,6 +64,7 @@
 			children = (
 				C44DF50B28360E30007901E7 /* PresentsSampleApp.swift */,
 				C44DF50D28360E30007901E7 /* ManyTimersView.swift */,
+				C44DF526283618A8007901E7 /* OneTimer.swift */,
 				C44DF5242836182C007901E7 /* Timer.swift */,
 				C44DF50F28360E33007901E7 /* Assets.xcassets */,
 				C44DF51128360E33007901E7 /* Preview Content */,
@@ -169,6 +172,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C44DF527283618A8007901E7 /* OneTimer.swift in Sources */,
 				C44DF5252836182C007901E7 /* Timer.swift in Sources */,
 				C44DF50E28360E30007901E7 /* ManyTimersView.swift in Sources */,
 				C44DF50C28360E30007901E7 /* PresentsSampleApp.swift in Sources */,

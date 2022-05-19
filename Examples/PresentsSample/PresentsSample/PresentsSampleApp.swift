@@ -4,7 +4,16 @@ import SwiftUI
 struct PresentsSampleApp: App {
     var body: some Scene {
         WindowGroup {
-            ManyTimersView()
+            TabView {
+                ManyTimersView()
+                    .tabItem {
+                        Label("Many", systemImage: "timer")
+                    }
+                OneTimerView()
+                    .tabItem {
+                        Label("One", systemImage: "timer.square")
+                    }
+            }
         }
     }
 }

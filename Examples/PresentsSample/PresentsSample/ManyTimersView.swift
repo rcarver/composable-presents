@@ -22,24 +22,12 @@ struct ManyTimersView: View {
                 state: \.timers,
                 action: ManyTimersAction.timer
             )) { eachStore in
-                WithViewStore(eachStore) { viewStore in
-                    Button {
-                        viewStore.send(.finished, animation: .default)
-
-                    } label: {
-                        HStack {
-                            Text(viewStore.name)
-                            Spacer()
-                            Text(viewStore.count.formatted())
-                        }
-                    }
-                }
+                TimerView(store: eachStore)
             }
         }
         .safeAreaInset(edge: .bottom) {
             WithViewStore(store) { viewStore in
                 VStack {
-                    Text("^[\(viewStore.timers.count) timers](inflect: true)")
                     Button {
                         viewStore.send(.startTimer(
                             name: names.randomElement()!,
@@ -48,13 +36,36 @@ struct ManyTimersView: View {
                     } label: {
                         Text("New Timer")
                     }
+                    Text("^[\(viewStore.timers.count) timers](inflect: true)")
+                    Text("Many timers can run in parallel")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.top)
+                .padding()
                 .background(.thinMaterial)
             }
         }
         .navigationBarTitle("Timers")
+    }
+}
+
+fileprivate struct TimerView: View {
+    let store: Store<TimerState, TimerAction>
+    var body: some View {
+        WithViewStore(store) { viewStore in
+            HStack {
+                Text(viewStore.name)
+                Spacer()
+                Text(viewStore.count.formatted())
+                Button {
+                    viewStore.send(.finished, animation: .default)
+                } label: {
+                    Label("Cancel", systemImage: "xmark.circle")
+                }
+                .labelStyle(.iconOnly)
+            }
+        }
     }
 }
 
