@@ -336,8 +336,8 @@ final class ComposableOptionalityTests: XCTestCase {
 
         store.send(.secondBorn) {
             $0.$people = .transition(
-                to: .presenting(.two(.init(name: "Mary", age: 0))),
-                from: .cancelling(.one(.init(name: "John", age: 1)))
+                from: .cancelling(.one(.init(name: "John", age: 1))),
+                to: .two(.init(name: "Mary", age: 0))
             )
         }
         store.receive(.people(.one(.cancel))) {

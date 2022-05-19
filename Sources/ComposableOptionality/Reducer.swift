@@ -113,15 +113,16 @@ extension ExclusivePresentationPhase {
             let effects = phase.run(presenter: presenter, environment: environment, mapAction: mapAction)
             self = .single(phase)
             return effects
-        case .transition(to: var to, from: var from):
+        case .transition(from: var from, to: let to):
             let fromEffects = from.run(presenter: presenter, environment: environment, mapAction: mapAction)
             switch from {
             case .dismissed:
-                let toEffects = to.run(presenter: presenter, environment: environment, mapAction: mapAction)
-                self = .single(to)
+                var phase = PresentationPhase.presenting(to)
+                let toEffects = phase.run(presenter: presenter, environment: environment, mapAction: mapAction)
+                self = .single(phase)
                 return toEffects
             default:
-                self = .transition(to: to, from: from)
+                self = .transition(from: from, to: to)
                 return fromEffects
             }
         }

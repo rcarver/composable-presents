@@ -94,7 +94,7 @@ public enum ExclusivePresentationPhase<State> where State: Identifiable {
     case single(PresentationPhase<State>)
 
     /// The presentation is transitioning from one state to another.
-    case transition(to: PresentationPhase<State>, from: PresentationPhase<State>)
+    case transition(from: PresentationPhase<State>, to: State)
 }
 
 extension ExclusivePresentationPhase {
@@ -109,7 +109,7 @@ extension ExclusivePresentationPhase {
     var currentState: State? {
         switch self {
         case .single(let phase): return phase.state
-        case .transition(_, let phase): return phase.state
+        case .transition(from: let phase, to: _): return phase.state
         }
     }
     mutating func activate(with newValue: State?) {
@@ -129,24 +129,14 @@ extension ExclusivePresentationPhase {
                     self = .single(phase)
                 } else {
                     phase.activate(with: nil)
-                    self = .transition(to: .presenting(newValue), from: phase)
+                    self = .transition(from: phase, to: newValue)
                 }
             }
-        case .transition(var to, var from):
-            guard let newValue = newValue else {
-                print("xxx PRESENT TO NIL")
-                print("xxx >", self)
-                return
-            }
-            switch newValue.id {
-            case from.state?.id:
+        case .transition(from: var from, to: let to):
+            if from.state?.id == newValue?.id {
                 from.activate(with: newValue)
-            case to.state?.id:
-                to.activate(with: newValue)
-            default:
-                break
             }
-            self = .transition(to: to, from: from)
+            self = .transition(from: from, to: to)
         }
     }
 }
