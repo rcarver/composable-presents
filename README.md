@@ -8,10 +8,10 @@ This package attempts to provide a simple to use and complete solution to
 managing presentation and dismissal of state and long running effects.
 
 For our purposes, *presentation* is defined as creating some non-nil state
-for the purpose of driving a UI interaction, then destroying that state
-(setting to nil) to end the interaction. In TCA this is often paired
-with kicking off long-running effects which must be carefully cancelled
-before the state becomes nil. 
+for the purpose for working in a new domain, then destroying that state
+(setting to nil) to end work in tha domain. In TCA, creating this new domain 
+is often paired with kicking off long-running effects which must be carefully 
+cancelled before the state becomes nil. 
 
 This dance of cancelling effects, then setting state to nil is error-prone
 and requires additional lifecycle actions to get right.
@@ -32,9 +32,9 @@ struct WorldState: Equatable {
 }
 ```
 
-The `presents` higher-order reducer provides a `Presenter` which performs
+The `presents` higher-order reducer takes a `Presenter` which performs
 actions when the state is presented and dismissed. A `Presenter` can be
-derived from a `Reducer` in most cases.
+derived from a `Reducer` in many cases.
 
 ```swift
 Reducer { state, action, environment in
@@ -52,11 +52,37 @@ With these two pieces in place, you're free to use TCA as normal and set
 `state.person` to an honest value or nil value and any long-running effects 
 performed by the `PersonReducer` will be started and cancelled automatically.
 
+## Types of Presentation
+
+Variations of the property wrapper support patterns for modeling optional state.
+
+```swift
+/// Perform presentation when the value changes from nil to non-nil.
+@PresentsOptional var value: SomeValue?
+```
+
+```swift
+/// Perform presentation when the value moves from nil to non-nil, 
+/// or if the ID of the value changes. 
+@PresentsID var value: SomeIdentifiableValue?
+```
+
+```swift
+/// Perform presentation when the value moves from nil to non-nil, 
+/// or if the case of the enum changes.
+@PresentsCase var value: SomeEnumValue?
+```
+
+```swift
+/// Perform presentation any element is added or removed from the array.
+@PresentsEach var value: IdentifiedArrayOf<SomeValue> = []
+```
+
 ## Example
 
 Following is a simple example using all features of the library.
 
-**The child/presented domain**
+**The child/presented domain** —
 
 ```swift
 struct PersonState: Equatable {
@@ -101,7 +127,7 @@ let personReducer = Reducer<PersonState, PersonAction, PersonEnvironment>.combin
 )
 ```
 
-**The parent/presenter domain**
+**The parent/presenter domain** —
 
 ```swift
 struct WorldState: Equatable {
