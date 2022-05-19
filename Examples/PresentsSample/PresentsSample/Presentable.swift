@@ -5,10 +5,10 @@ import ComposableArchitecture
 
 public protocol PresentableAction {
     associatedtype State
-    static func presents(_ action: PresentingAction<State>) -> Self
+    static func presents(_ action: PresentsAction<State>) -> Self
 }
 
-public struct PresentingAction<Root>: Equatable {
+public struct PresentsAction<Root>: Equatable {
     public let keyPath: PartialKeyPath<Root>
 
     let set: (inout Root) -> Void
@@ -20,7 +20,7 @@ public struct PresentingAction<Root>: Equatable {
     }
 }
 
-extension PresentingAction {
+extension PresentsAction {
     /// Set the state, triggering new presentation.
     public static func set<Value>(
         _ keyPath: WritableKeyPath<Root, ExclusivePresentationPhase<Value>>,

@@ -4,19 +4,29 @@ import SwiftUI
 struct PresentsSampleApp: App {
     var body: some Scene {
         WindowGroup {
-            TabView {
-                ManyTimersView()
-                    .tabItem {
-                        Label("Many", systemImage: "timer")
+            NavigationView {
+                List {
+                    NavigationLink {
+                        ManyTimersView()
+                    } label: {
+                        Label("Many Timers", systemImage: "timer")
                     }
-                OneTimerView()
-                    .tabItem {
-                        Label("One", systemImage: "timer.square")
+                    NavigationLink {
+                        OneTimerView()
+                    } label: {
+                        Label("One Timer", systemImage: "timer.square")
                     }
-                ModalTimerView()
-                    .tabItem {
-                        Label("One Modal", systemImage: "arrow.up")
+                    NavigationLink {
+                        ModalTimerIdView()
+                    } label: {
+                        Label("Modal Timer of ID", systemImage: "timer.square")
                     }
+                    NavigationLink {
+                        ModalTimerOptionView()
+                    } label: {
+                        Label("Modal Timer Option", systemImage: "timer.square")
+                    }
+                }
             }
         }
     }

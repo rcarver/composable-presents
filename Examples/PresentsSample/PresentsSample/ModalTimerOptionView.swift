@@ -3,10 +3,10 @@ import ComposableArchitecture
 import ComposablePresents
 import SwiftUI
 
-struct ModalTimerView: View {
-    let store: Store<ModalTimerState, ModalTimerAction> = .init(
+struct ModalTimerOptionView: View {
+    let store: Store<ModalTimerOptionState, ModalTimerOptionAction> = .init(
         initialState: .init(),
-        reducer: modalTimerReducer,
+        reducer: modalTimerOptionReducer,
         environment: .init(
             fastTicks: {
                 Timer.publish(every: 0.25, on: .main, in: .default)
@@ -45,7 +45,7 @@ struct ModalTimerView: View {
         .sheet(
             store: store,
             state: \.$timer,
-            action: ModalTimerAction.timerOption,
+            action: ModalTimerOptionAction.timerOption,
             caseState: /TimerOption.fast,
             caseAction: TimerOptionAction.fast
         ) { sheetStore in
@@ -56,7 +56,7 @@ struct ModalTimerView: View {
         .sheet(
             store: store,
             state: \.$timer,
-            action: ModalTimerAction.timerOption,
+            action: ModalTimerOptionAction.timerOption,
             caseState: /TimerOption.slow,
             caseAction: TimerOptionAction.slow
         ) { sheetStore in
@@ -91,26 +91,26 @@ fileprivate struct TimerView: View {
     }
 }
 
-struct ModalTimer_Previews: PreviewProvider {
+struct ModalTimerOption_Previews: PreviewProvider {
     static var previews: some View {
         NavigationView {
-            ModalTimerView()
+            ModalTimerOptionView()
         }
     }
 }
 
-struct ModalTimerState: Equatable {
+struct ModalTimerOptionState: Equatable {
     @PresentsOne var timer: TimerOption?
 }
 
-enum ModalTimerAction: PresentableAction {
-    case presents(PresentingAction<ModalTimerState>)
+enum ModalTimerOptionAction: PresentableAction {
+    case presents(PresentsAction<ModalTimerOptionState>)
     case startFast
     case startSlow
     case timerOption(TimerOptionAction)
 }
 
-struct ModalTimerEnvironment {
+struct ModalTimerOptionEnvironment {
     var fastTicks: () -> Effect<Void, Never>
     var slowTicks: () -> Effect<Void, Never>
     var mainQueue: AnySchedulerOf<DispatchQueue>
@@ -119,10 +119,10 @@ struct ModalTimerEnvironment {
     }
 }
 
-let modalTimerReducer = Reducer<ModalTimerState, ModalTimerAction, ModalTimerEnvironment>.combine(
+let modalTimerOptionReducer = Reducer<ModalTimerOptionState, ModalTimerOptionAction, ModalTimerOptionEnvironment>.combine(
     timerOptionReducer.optional().pullback(
         state: \.timer,
-        action: /ModalTimerAction.timerOption,
+        action: /ModalTimerOptionAction.timerOption,
         environment: \.timerOption
     ),
     Reducer { state, action, environment in
@@ -147,7 +147,7 @@ let modalTimerReducer = Reducer<ModalTimerState, ModalTimerAction, ModalTimerEnv
     }
         .presents(
             state: \.$timer,
-            action: /ModalTimerAction.timerOption,
+            action: /ModalTimerOptionAction.timerOption,
             environment: \.timerOption,
             presenter: .init { state, action, environment in
                 switch (action, state) {

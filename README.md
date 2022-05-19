@@ -28,7 +28,7 @@ The property wrapper comes in flavors for `Optional` state, `Identified` state,
 
 ```swift
 struct WorldState: Equatable {
-  @PresentsOptional var person: PersonState?
+  @PresentsAny var person: PersonState?
 }
 ```
 
@@ -58,7 +58,7 @@ Variations of the property wrapper support patterns for modeling optional state.
 
 ```swift
 /// Perform presentation when the value changes from nil to non-nil.
-@PresentsOptional var value: SomeValue?
+@PresentsAny var value: SomeValue?
 ```
 
 ```swift
@@ -136,8 +136,8 @@ let personReducer = Reducer<PersonState, PersonAction, PersonEnvironment>.combin
 
 ```swift
 struct WorldState: Equatable {
-  // ⭐️ Property wrapper for optional state
-  @PresentsOptional var person: PersonState?
+  // ⭐️ Property wrapper for presenting any state
+  @PresentsAny var person: PersonState?
 }
 
 enum WorldAction: Equatable {
@@ -210,11 +210,11 @@ Reducer { state, action, environment in
 ```
 
 The presenter is given the presented state (or the last honest state
-when dismissed), a `PresentationAction` and the environment. Custom
-presenters can perform any additional side-effects beyond what the
-reducer defines.
+when dismissed), a `PresentationAction` (`present`, `dismiss`), and the 
+environment. Custom presenters can perform any additional side-effects 
+beyond what the reducer defines.
 
-Note: be sure that any effects sent from the `dismiss` action do
+**Note:** be sure that any effects sent from the `dismiss` action do
 not feed back into the system (use `.fireAndforget` and `.cancel`) 
 because the state will be nil. 
 

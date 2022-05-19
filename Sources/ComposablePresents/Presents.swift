@@ -7,7 +7,7 @@ import IdentifiedCollections
 /// This type should only be used when the non-nil value always has the same identity.
 /// If the identity of the non-nil value can change, use `PresentsOne`.
 @propertyWrapper
-public struct PresentsOptional<State> {
+public struct PresentsAny<State> {
     private var value: PresentationPhase<State>
 
     public init() {
@@ -61,7 +61,7 @@ public struct PresentsEach<State> where State: Identifiable {
     }
 }
 
-extension PresentsOptional: Equatable where State: Equatable {}
+extension PresentsAny: Equatable where State: Equatable {}
 
 extension PresentsOne: Equatable where State: Equatable {}
 

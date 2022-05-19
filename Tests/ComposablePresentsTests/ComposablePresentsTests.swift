@@ -40,9 +40,9 @@ final class IntegrationTests: XCTestCase {
         }
     )
 
-    func testPresentsOptional() {
+    func testPresentsAny() {
         struct WorldState: Equatable {
-            @PresentsOptional var person: PersonState?
+            @PresentsAny var person: PersonState?
         }
         enum WorldAction: Equatable {
             case born
