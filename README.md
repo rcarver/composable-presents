@@ -2,6 +2,8 @@
 
 Presentation and dismissal for [ComposableArchitecture](https://github.com/pointfreeco/swift-composable-architecture/).
 
+⚠️ Status: experimental, incomplete!
+
 ## Purpose
 
 This package attempts to provide a simple to use and complete solution to 
@@ -231,13 +233,40 @@ TODO: See the sample app.
 
 TODO: See the test suite.
 
+## Background
+
+In creating this library I wanted to bring consistency to effect creation and cancellation. I've found that they tend to be handled differently based on the use and context of a domain. 
+
+* In SwiftUI, it's most convenient to start effects in `onAppear`. This works fine, but takes control of this effect out of the parent domain.
+* In SwiftuI, it's most convenient to cancel effects in `onDisappear`. This only works if the associated state stays non-nil and is simply visible or hidden based on some other state.
+
+However, it's common to use non-nil/nil state to navigate. In such cases, a view designed to cancel itself in `onDisappear` will fail because the state is by definition nil when it disappers. See [SwiftUINavigation](https://github.com/pointfreeco/swiftui-navigation) and [Point Free's Navigation](https://www.pointfree.co/collections/swiftui/navigation) for reference on modeling navigation this way.
+
+To simplify all of this, most libraries that provide presentation/navigation tools ([ComposablePresentation](https://github.com/darrarski/swift-composable-presentation), [TCACoordinators](https://github.com/johnpatrickmorgan/TCACoordinators)) automatically cancel all effects of the presented domain when its state goes nil. This is convenient, but:
+
+* In tests, you must *also* implement cancellation in the reducer such that no effects are running when the test ends.
+
+All of this leads to feeling like there's no single way to set this all up, or at least not a way that's simple to use.
+
+## Goals
+
+I believe that to improve the ergonomics of state presentation, effects management and navigation:
+
+* How effects are managed (started, cancelled) should be defined by the domain itself—in its reducer. There should ideally be a consistent action to perform these steps.
+* The *triggering* of these steps, however, should be performed by the parent domain. This is what knows when the associated state is present or not.
+* The parent domain should be able to perform *other* effects at this time
+* You should only have to set state to non-nil or nil to perform presentation state transitions, including effects.
+* Automatic cancellation should be avoided. It lets you forget about effect cancellation, when it's really a key part of domain design.
+* All uses of a domain should follow the same pattern; when it's standalone, nested, presented, and in tests.
+
 ## Other libraries
 
-This library builds upon much frustration in this area of building with [ComposableArchitecture](https://github.com/pointfreeco/swift-composable-architecture/), 
-which is an incredible library that I use every day.
+This library builds upon incredible work such as:
 
+* [ComposableArchitecture](https://github.com/pointfreeco/swift-composable-architecture/)
 * [ComposablePresentation](https://github.com/darrarski/swift-composable-presentation)
 * [SwiftUINavigation](https://github.com/pointfreeco/swiftui-navigation)
+* [TCACoordinators](https://github.com/johnpatrickmorgan/TCACoordinators)
 
 ## License
 
