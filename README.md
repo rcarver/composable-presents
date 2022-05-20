@@ -206,9 +206,9 @@ Reducer { state, action, environment in
     presenter: .init { state, action, environment in 
       switch action {
       case .present:
-        return Effect(value: .your_custom_effect)
+        return .action(Effect(value: .your_custom_effect)) // or `.action(.your_custom_effect)`
       case .dismiss:
-        return Effect(value: .your_custom_effect)
+        return .action(Effect(value: .your_custom_effect)) // or `.immediate` if nothing to do
       }
     }
   )
