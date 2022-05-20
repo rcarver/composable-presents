@@ -86,10 +86,13 @@ An enum can implement `Identifiable` fairly easily, for example:
 ```swift
 extension MyEnum: Identifiable {
   var id: AnyHashable {
+    switch self {
     case .firstCase(let value): return value.id
     case .secondCase: return "second"
+    }
   }
 }
+
 ```
 
 ## Example
