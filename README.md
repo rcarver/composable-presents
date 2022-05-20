@@ -1,6 +1,6 @@
 # ComposablePresents
 
-Presentation and dismissal for [ComposableArchitecture](https://github.com/pointfreeco/swift-composable-architecture/).
+Presentation, dismissal, and navigation for [ComposableArchitecture](https://github.com/pointfreeco/swift-composable-architecture/).
 
 ⚠️ Status: experimental, incomplete!
 
