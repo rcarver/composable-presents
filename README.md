@@ -7,7 +7,8 @@ Presentation and dismissal for [ComposableArchitecture](https://github.com/point
 ## Purpose
 
 This package attempts to provide a simple to use and complete solution to 
-managing presentation and dismissal of state and long running effects.
+managing presentation and dismissal of state and long running effects. 
+See [background](#background) and [goals](#goals) for more context.
 
 For our purposes, *presentation* is defined as creating some non-nil state
 for the purpose for working in a new domain, then destroying that state
