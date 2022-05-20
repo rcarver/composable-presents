@@ -29,6 +29,34 @@ extension PresentsAction: Equatable {
 extension PresentsAction {
     /// Set the state, triggering new presentation.
     public static func set<Value>(
+        _ keyPath: WritableKeyPath<Root, PresentationPhase<Value>>,
+        value: Value
+    ) -> Self
+    where Value: Equatable, Value: Identifiable {
+        .init(
+            keyPath: keyPath,
+            set: { $0[keyPath: keyPath].activate(with: value) },
+            value: value,
+            valueIsEqualTo: { $0 as? Value == value }
+        )
+    }
+    /// Dismiss the state.
+    public static func dismiss<Value>(
+        _ keyPath: WritableKeyPath<Root, PresentationPhase<Value>>
+    ) -> Self
+    where Value: Identifiable {
+        .init(
+            keyPath: keyPath,
+            set: { $0[keyPath: keyPath].activate(with: nil) },
+            value: nil,
+            valueIsEqualTo: { _ in true }
+        )
+    }
+}
+
+extension PresentsAction {
+    /// Set the state, triggering new presentation.
+    public static func set<Value>(
         _ keyPath: WritableKeyPath<Root, ExclusivePresentationPhase<Value>>,
         value: Value
     ) -> Self

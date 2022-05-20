@@ -162,7 +162,7 @@ fileprivate extension PresentationPhase {
             case .action(let effect):
                 self = .dismissing(state)
                 return effect.map(mapAction)
-            case .fireAndForget(let effect):
+            case .immediate(let effect):
                 self = .dismissed
                 return effect.map(mapAction)
             }

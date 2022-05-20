@@ -34,17 +34,18 @@ public enum PresentationAction {
 /// The effect type returned by a Presenter.
 public enum PresenterEffect<Action> {
 
-    /// The returned effects will perform an action.
+    /// Dismissal waits for an action to be performed.
     ///
     /// Dismissal will move to the `dismissing` phase while
     /// performing the action, then move to the `dismissed` phase.
     case action(Effect<Action, Never>)
 
-    /// The effects have no impact on downstream actions or state.
+    /// Dismissal happens immediately. The effects have no impact
+    /// on downstream actions or state.
     ///
     /// Dismissal will skip the `dismissing` phase,
     /// moving to the `dismissed` phase immediately,
-    case fireAndForget(Effect<Action, Never>)
+    case immediate(Effect<Action, Never>)
 }
 
 extension Presenter {
@@ -54,20 +55,20 @@ extension Presenter {
         _ action: Action.Type = Action.self,
         _ environment: Environment.Type = Environment.self
     ) -> Presenter<State, Action, Environment> {
-        .init { _, _, _ in .none }
+        .init { _, _, _ in .immediate }
     }
 }
 
 extension PresenterEffect {
-    /// Perform no effects in this presentation action.
-    public static var none: Self { .fireAndForget(.none) }
+    /// Dismiss immediately, performing no effects in this presentation action.
+    public static var immediate: Self { .immediate(.none) }
 }
 
 extension PresenterEffect {
     var effect: Effect<Action, Never> {
         switch self {
         case .action(let effect): return effect
-        case .fireAndForget(let effect): return effect
+        case .immediate(let effect): return effect
         }
     }
 }

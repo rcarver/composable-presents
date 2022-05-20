@@ -14,7 +14,7 @@ final class PresentsAnyTests: XCTestCase {
     }
 }
 
-final class PresentsNoEffectsIntegrationTests: XCTestCase {
+final class PresentsImmediateIntegrationTests: XCTestCase {
 
     struct PersonState: Equatable, Identifiable {
         var id: String { name }
@@ -199,7 +199,7 @@ final class PresentsNoEffectsIntegrationTests: XCTestCase {
     }
 }
 
-final class PresentsLongRunningEffectsIntegrationTests: XCTestCase {
+final class PresentsLongRunningIntegrationTests: XCTestCase {
 
     struct PersonState: Equatable, Identifiable {
         var id: String { name }

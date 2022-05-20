@@ -97,6 +97,21 @@ public enum ExclusivePresentationPhase<State> {
 }
 
 extension ExclusivePresentationPhase {
+    /// The state is dismissed, there is no state.
+    public static var dismissed: Self {
+        .single(.dismissed)
+    }
+    /// The single state is fully presented.
+    public static func presented(_ state: State) -> Self {
+        .single(.presented(state))
+    }
+    /// The single state is dismissing, performing cleanup work.
+    public static func dismissing(_ state: State) -> Self {
+        .single(.dismissing(state))
+    }
+}
+
+extension ExclusivePresentationPhase {
     /// Initialize from state, setting initial presentation phase.
     init(_ state: State?, initialPhase: (State) -> PresentationPhase<State>) {
         if let state = state {
