@@ -154,12 +154,18 @@ fileprivate extension PresentationPhase {
             return .none
         case .shouldPresent(let state):
             self = .presented(state)
-            return presenter(state, .present, environment).map(mapAction)
+            return presenter(state, .present, environment).effect.map(mapAction)
         case .presented:
             return .none
         case .shouldDismiss(let state):
-            self = .dismissing(state)
-            return presenter(state, .dismiss, environment).map(mapAction)
+            switch presenter(state, .dismiss, environment) {
+            case .action(let effect):
+                self = .dismissing(state)
+                return effect.map(mapAction)
+            case .fireAndForget(let effect):
+                self = .dismissed
+                return effect.map(mapAction)
+            }
         case .dismissing:
             self = .dismissed
             return .none

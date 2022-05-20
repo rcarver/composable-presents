@@ -14,7 +14,192 @@ final class PresentsAnyTests: XCTestCase {
     }
 }
 
-final class PresentsIntegrationTests: XCTestCase {
+final class PresentsNoEffectsIntegrationTests: XCTestCase {
+
+    struct PersonState: Equatable, Identifiable {
+        var id: String { name }
+        var name: String
+        var age: Int
+    }
+
+    enum PersonAction: Equatable {
+        case setAge(Int)
+    }
+
+    let personReducer = Reducer<PersonState, PersonAction, ()> { state, action, environment in
+        switch action {
+        case .setAge(let age):
+            state.age = age
+            return .none
+        }
+    }
+
+    func testPresentsAny() {
+        struct WorldState: Equatable {
+            @PresentsAny var person: PersonState?
+        }
+        enum WorldAction: Equatable {
+            case born
+            case died
+            case person(PersonAction)
+        }
+        let reducer = Reducer<WorldState, WorldAction, ()>.combine(
+            personReducer.optional().pullback(
+                state: \.person,
+                action: /WorldAction.person,
+                environment: { _ in () }
+            ),
+            Reducer { state, action, environment in
+                switch action {
+                case .born:
+                    state.person = .init(name: "John", age: 0)
+                    return .none
+                case .died:
+                    state.person = nil
+                    return .none
+                case .person:
+                    return .none
+                }
+            }
+                .presents(
+                    state: \.$person,
+                    action: /WorldAction.person,
+                    environment: { _ in () },
+                    presenter: .immediate()
+                )
+        )
+        let store = TestStore(
+            initialState: .init(),
+            reducer: reducer,
+            environment: ()
+        )
+        store.send(.born) {
+            $0.$person = .presented(.init(name: "John", age: 0))
+        }
+        store.send(.person(.setAge(1))) {
+            $0.person?.age = 1
+        }
+        store.send(.died) {
+            $0.$person = .dismissed
+        }
+    }
+
+    func testPresentsAny_presenter_returns_action() {
+        struct WorldState: Equatable {
+            @PresentsAny var person: PersonState?
+        }
+        enum WorldAction: Equatable {
+            case born
+            case died
+            case person(PersonAction)
+        }
+        let reducer = Reducer<WorldState, WorldAction, ()>.combine(
+            personReducer.optional().pullback(
+                state: \.person,
+                action: /WorldAction.person,
+                environment: { _ in () }
+            ),
+            Reducer { state, action, environment in
+                switch action {
+                case .born:
+                    state.person = .init(name: "John", age: 0)
+                    return .none
+                case .died:
+                    state.person = nil
+                    return .none
+                case .person:
+                    return .none
+                }
+            }
+                .presents(
+                    state: \.$person,
+                    action: /WorldAction.person,
+                    environment: { _ in () },
+                    presenter: .init { _, _, _ in
+                        // a nonsensical response that leaves us in a bad state
+                            .action(.none)
+                    }
+                )
+        )
+        let store = TestStore(
+            initialState: .init(),
+            reducer: reducer,
+            environment: ()
+        )
+        store.send(.born) {
+            $0.$person = .presented(.init(name: "John", age: 0))
+        }
+        store.send(.person(.setAge(1))) {
+            $0.person?.age = 1
+        }
+        store.send(.died) {
+            $0.$person = .dismissing(.init(name: "John", age: 1))
+        }
+    }
+
+    func testPresentsOne() {
+        struct WorldState: Equatable {
+            @PresentsOne var person: PersonState?
+        }
+        enum WorldAction: Equatable {
+            case johnBorn
+            case maryBorn
+            case died
+            case person(PersonAction)
+        }
+        let reducer = Reducer<WorldState, WorldAction, ()>.combine(
+            personReducer.optional().pullback(
+                state: \.person,
+                action: /WorldAction.person,
+                environment: { _ in () }
+            ),
+            Reducer { state, action, environment in
+                switch action {
+                case .johnBorn:
+                    state.person = .init(name: "John", age: 0)
+                    return .none
+                case .maryBorn:
+                    state.person = .init(name: "Mary", age: 0)
+                    return .none
+                case .died:
+                    state.person = nil
+                    return .none
+                case .person:
+                    return .none
+                }
+            }
+                .presents(
+                    state: \.$person,
+                    action: /WorldAction.person,
+                    environment: { _ in () },
+                    presenter: .immediate()
+                )
+        )
+        let store = TestStore(
+            initialState: .init(),
+            reducer: reducer,
+            environment: ()
+        )
+        store.send(.johnBorn) {
+            $0.$person = .single(.presented(.init(name: "John", age: 0)))
+        }
+        store.send(.person(.setAge(1))) {
+            $0.person?.age = 1
+        }
+        store.send(.maryBorn) {
+            $0.$person = .single(.presented(.init(name: "Mary", age: 0)))
+        }
+        store.send(.person(.setAge(1))) {
+            XCTAssertEqual($0.person?.name, "Mary")
+            $0.person?.age = 1
+        }
+        store.send(.died) {
+            $0.$person = .single(.dismissed)
+        }
+    }
+}
+
+final class PresentsLongRunningEffectsIntegrationTests: XCTestCase {
 
     struct PersonState: Equatable, Identifiable {
         var id: String { name }
@@ -294,10 +479,10 @@ final class PresentsIntegrationTests: XCTestCase {
                     environment: \.person,
                     presenter: .init { state, action, environment in
                         switch (action, state) {
-                        case (.present, .one): return Effect(value: .one(.begin))
-                        case (.present, .two): return Effect(value: .two(.begin))
-                        case (.dismiss, .one): return Effect(value: .one(.cancel))
-                        case (.dismiss, .two): return Effect(value: .two(.cancel))
+                        case (.present, .one): return .action(Effect(value: .one(.begin)))
+                        case (.present, .two): return .action(Effect(value: .two(.begin)))
+                        case (.dismiss, .one): return .action(Effect(value: .one(.cancel)))
+                        case (.dismiss, .two): return .action(Effect(value: .two(.cancel)))
                         }
                     }
                 )

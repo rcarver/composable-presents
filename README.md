@@ -17,7 +17,7 @@ This dance of cancelling effects, then setting state to nil is error-prone
 and requires additional lifecycle actions to get right.
 
 Presentation is often coupled with *navigation* but they're two separate issues.
-Navigation is a related state change of the UI, often modal, but not always. 
+Navigation is a related change of the UI state, often modal, but not always. 
 `ComposablePresents` provides a set of SwiftUI navigation helpers modeled 
 after [SwiftUINavigation](https://github.com/pointfreeco/swiftui-navigation).
 

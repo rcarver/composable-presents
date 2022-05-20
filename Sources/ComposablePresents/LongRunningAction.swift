@@ -24,8 +24,8 @@ extension Presenter where Action: LongRunningAction {
     public static func longRunning(_ reducer: Reducer<State, Action, Environment>) -> Self {
         .init { _, action, _ in
             switch action {
-            case .present: return Effect(value: .begin)
-            case .dismiss: return Effect(value: .cancel)
+            case .present: return .action(Effect(value: .begin))
+            case .dismiss: return .action(Effect(value: .cancel))
             }
         }
     }
