@@ -139,6 +139,5 @@ let modalTimerIdReducer = Reducer<ModalTimerIdState, ModalTimerIdAction, ModalTi
             environment: \.timer,
             presenter: .longRunning(timerReducer)
         )
-        .presentable()
 )
     .debugActions()

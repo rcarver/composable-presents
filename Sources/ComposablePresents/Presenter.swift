@@ -62,6 +62,11 @@ extension Presenter {
 extension PresenterEffect {
     /// Dismiss immediately, performing no effects in this presentation action.
     public static var immediate: Self { .immediate(.none) }
+
+    /// Dismiss by performing an action.
+    public static func action(_ value: Action) -> Self {
+        .action(Effect(value: value))
+    }
 }
 
 extension PresenterEffect {

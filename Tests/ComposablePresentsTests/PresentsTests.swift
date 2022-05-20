@@ -479,10 +479,10 @@ final class PresentsLongRunningIntegrationTests: XCTestCase {
                     environment: \.person,
                     presenter: .init { state, action, environment in
                         switch (action, state) {
-                        case (.present, .one): return .action(Effect(value: .one(.begin)))
-                        case (.present, .two): return .action(Effect(value: .two(.begin)))
-                        case (.dismiss, .one): return .action(Effect(value: .one(.cancel)))
-                        case (.dismiss, .two): return .action(Effect(value: .two(.cancel)))
+                        case (.present, .one): return .action(.one(.begin))
+                        case (.present, .two): return .action(.two(.begin))
+                        case (.dismiss, .one): return .action(.one(.cancel))
+                        case (.dismiss, .two): return .action(.two(.cancel))
                         }
                     }
                 )
