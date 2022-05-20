@@ -225,15 +225,15 @@ because the state will be nil.
 
 ## Navigation
 
-TODO
+TODO: See the sample app.
 
 ## Testing
 
-TODO
+TODO: See the test suite.
 
 ## Other libraries
 
-This library builds on much frustration in this area of [ComposableArchitecture](https://github.com/pointfreeco/swift-composable-architecture/), 
+This library builds upon much frustration in this area of building with [ComposableArchitecture](https://github.com/pointfreeco/swift-composable-architecture/), 
 which is an incredible library that I use every day.
 
 * [ComposablePresentation](https://github.com/darrarski/swift-composable-presentation)
