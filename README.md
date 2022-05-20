@@ -90,6 +90,7 @@ extension MyEnum: Identifiable {
     case .secondCase: return "second"
   }
 }
+```
 
 ## Example
 
