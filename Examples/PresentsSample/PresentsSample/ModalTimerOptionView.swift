@@ -151,10 +151,10 @@ let modalTimerOptionReducer = Reducer<ModalTimerOptionState, ModalTimerOptionAct
             environment: \.timerOption,
             presenter: .init { state, action, environment in
                 switch (action, state) {
-                case (.present, .fast): return .action(.fast(.start))
-                case (.present, .slow): return .action(.slow(.start))
-                case (.dismiss, .fast): return .action(.fast(.stop))
-                case (.dismiss, .slow): return .action(.slow(.stop))
+                case (.present, .fast): return .action(.fast(.longRunning(.start)))
+                case (.present, .slow): return .action(.slow(.longRunning(.start)))
+                case (.dismiss, .fast): return .action(.fast(.longRunning(.stop)))
+                case (.dismiss, .slow): return .action(.slow(.longRunning(.stop)))
                 }
             }
         )

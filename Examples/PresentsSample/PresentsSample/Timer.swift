@@ -8,10 +8,9 @@ struct TimerState: Equatable, Identifiable {
 }
 
 enum TimerAction: Equatable, LongRunningAction {
-    case start
-    case stop
-    case tick
     case finished
+    case longRunning(LongRunningEvent)
+    case tick
 }
 
 struct TimerEnvironment {
@@ -24,6 +23,15 @@ struct TimerEffect: Hashable { let id: AnyHashable }
 let timerReducer = Reducer<TimerState, TimerAction, TimerEnvironment>.combine(
     Reducer { state, action, environment in
         switch action {
+        case .longRunning(.start):
+            return environment.ticks()
+                .receive(on: environment.mainQueue)
+                .eraseToEffect { TimerAction.tick }
+                .cancellable(id: TimerEffect(id: state.id))
+        case .longRunning(.stop):
+            return .cancel(id: TimerEffect(id: state.id))
+        case .finished:
+            return .none
         case .tick:
             state.count -= 1
             if state.count <= 0 {
@@ -33,15 +41,6 @@ let timerReducer = Reducer<TimerState, TimerAction, TimerEnvironment>.combine(
             } else {
                 return .none
             }
-        case .start:
-            return environment.ticks()
-                .receive(on: environment.mainQueue)
-                .eraseToEffect { TimerAction.tick }
-                .cancellable(id: TimerEffect(id: state.id))
-        case .stop:
-            return .cancel(id: TimerEffect(id: state.id))
-        case .finished:
-            return .none
         }
     }
 )
