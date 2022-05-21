@@ -8,8 +8,8 @@ struct TimerState: Equatable, Identifiable {
 }
 
 enum TimerAction: Equatable, LongRunningAction {
-    case begin
-    case cancel
+    case start
+    case stop
     case tick
     case finished
 }
@@ -33,12 +33,12 @@ let timerReducer = Reducer<TimerState, TimerAction, TimerEnvironment>.combine(
             } else {
                 return .none
             }
-        case .begin:
+        case .start:
             return environment.ticks()
                 .receive(on: environment.mainQueue)
                 .eraseToEffect { TimerAction.tick }
                 .cancellable(id: TimerEffect(id: state.id))
-        case .cancel:
+        case .stop:
             return .cancel(id: TimerEffect(id: state.id))
         case .finished:
             return .none

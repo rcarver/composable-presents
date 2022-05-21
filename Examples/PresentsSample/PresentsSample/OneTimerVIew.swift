@@ -145,10 +145,10 @@ let oneTimerReducer = Reducer<OneTimerState, OneTimerAction, OneTimerEnvironment
             environment: \.timerOption,
             presenter: .init { state, action, environment in
                 switch (action, state) {
-                case (.present, .fast): return .action(.fast(.begin))
-                case (.present, .slow): return .action(.slow(.begin))
-                case (.dismiss, .fast): return .action(.fast(.cancel))
-                case (.dismiss, .slow): return .action(.slow(.cancel))
+                case (.present, .fast): return .action(.fast(.start))
+                case (.present, .slow): return .action(.slow(.start))
+                case (.dismiss, .fast): return .action(.fast(.stop))
+                case (.dismiss, .slow): return .action(.slow(.stop))
                 }
             }
         )
