@@ -208,8 +208,7 @@ final class PresentsLongRunningIntegrationTests: XCTestCase {
     }
 
     enum PersonAction: Equatable, LongRunningAction {
-        case start
-        case stop
+        case longRunning(LongRunningEvent)
         case setAge(Int)
     }
 
@@ -223,16 +222,16 @@ final class PresentsLongRunningIntegrationTests: XCTestCase {
     let personReducer = Reducer<PersonState, PersonAction, PersonEnvironment>.combine(
         Reducer { state, action, environment in
             switch action {
-            case .setAge(let age):
-                state.age = age
-                return .none
-            case .start:
+            case .longRunning(.start):
                 return environment.years()
                     .receive(on: environment.mainQueue)
                     .eraseToEffect(PersonAction.setAge)
                     .cancellable(id: PersonEffect(id: state.id))
-            case .stop:
+            case .longRunning(.stop):
                 return .cancel(id: PersonEffect(id: state.id))
+            case .setAge(let age):
+                state.age = age
+                return .none
             }
         }
     )
@@ -293,7 +292,7 @@ final class PresentsLongRunningIntegrationTests: XCTestCase {
         store.send(.born) {
             $0.$person = .presented(.init(name: "John", age: 0))
         }
-        store.receive(.person(.start))
+        store.receive(.person(.longRunning(.start)))
 
         mainQueue.advance(by: 1)
         store.receive(.person(.setAge(1))) {
@@ -308,7 +307,7 @@ final class PresentsLongRunningIntegrationTests: XCTestCase {
         store.send(.died) {
             $0.$person = .dismissing(.init(name: "John", age: 2))
         }
-        store.receive(.person(.stop)) {
+        store.receive(.person(.longRunning(.stop))) {
             $0.$person = .dismissed
         }
     }
@@ -373,7 +372,7 @@ final class PresentsLongRunningIntegrationTests: XCTestCase {
         store.send(.johnBorn) {
             $0.$person = .single(.presented(.init(name: "John", age: 0)))
         }
-        store.receive(.person(.start))
+        store.receive(.person(.longRunning(.start)))
 
         mainQueue.advance(by: 1)
         store.receive(.person(.setAge(1))) {
@@ -391,10 +390,10 @@ final class PresentsLongRunningIntegrationTests: XCTestCase {
                 to: .init(name: "Mary", age: 0)
             )
         }
-        store.receive(.person(.stop)) {
+        store.receive(.person(.longRunning(.stop))) {
             $0.$person = .single(.presented(.init(name: "Mary", age: 0)))
         }
-        store.receive(.person(.start))
+        store.receive(.person(.longRunning(.start)))
 
         mainQueue.advance(by: 1)
         store.receive(.person(.setAge(1))) {
@@ -404,7 +403,7 @@ final class PresentsLongRunningIntegrationTests: XCTestCase {
         store.send(.died) {
             $0.$person = .single(.dismissing(.init(name: "Mary", age: 1)))
         }
-        store.receive(.person(.stop)) {
+        store.receive(.person(.longRunning(.stop))) {
             $0.$person = .single(.dismissed)
         }
     }
@@ -479,10 +478,10 @@ final class PresentsLongRunningIntegrationTests: XCTestCase {
                     environment: \.person,
                     presenter: .init { state, action, environment in
                         switch (action, state) {
-                        case (.present, .one): return .action(.one(.start))
-                        case (.present, .two): return .action(.two(.start))
-                        case (.dismiss, .one): return .action(.one(.stop))
-                        case (.dismiss, .two): return .action(.two(.stop))
+                        case (.present, .one): return .action(.one(.longRunning(.start)))
+                        case (.present, .two): return .action(.two(.longRunning(.start)))
+                        case (.dismiss, .one): return .action(.one(.longRunning(.stop)))
+                        case (.dismiss, .two): return .action(.two(.longRunning(.stop)))
                         }
                     }
                 )
@@ -502,7 +501,7 @@ final class PresentsLongRunningIntegrationTests: XCTestCase {
         store.send(.firstBorn) {
             $0.$people = .single(.presented(.one(.init(name: "John", age: 0))))
         }
-        store.receive(.people(.one(.start)))
+        store.receive(.people(.one(.longRunning(.start))))
 
         mainQueue.advance(by: 1)
         store.receive(.people(.one(.setAge(1)))) {
@@ -515,10 +514,10 @@ final class PresentsLongRunningIntegrationTests: XCTestCase {
                 to: .two(.init(name: "Mary", age: 0))
             )
         }
-        store.receive(.people(.one(.stop))) {
+        store.receive(.people(.one(.longRunning(.stop)))) {
             $0.$people = .single(.presented(.two(.init(name: "Mary", age: 0))))
         }
-        store.receive(.people(.two(.start)))
+        store.receive(.people(.two(.longRunning(.start))))
 
         mainQueue.advance(by: 1)
         store.receive(.people(.two(.setAge(1)))) {
@@ -528,7 +527,7 @@ final class PresentsLongRunningIntegrationTests: XCTestCase {
         store.send(.died) {
             $0.$people = .single(.dismissing(.two(.init(name: "Mary", age: 1))))
         }
-        store.receive(.people(.two(.stop))) {
+        store.receive(.people(.two(.longRunning(.stop)))) {
             $0.$people = .single(.dismissed)
         }
     }
@@ -591,7 +590,7 @@ final class PresentsLongRunningIntegrationTests: XCTestCase {
                 .presented(.init(name: "John", age: 0))
             ]
         }
-        store.receive(.person(id: "John", action: .start))
+        store.receive(.person(id: "John", action: .longRunning(.start)))
 
         mainQueue.advance(by: 1)
         store.receive(.person(id: "John", action: .setAge(1))) {
@@ -604,7 +603,7 @@ final class PresentsLongRunningIntegrationTests: XCTestCase {
                 .presented(.init(name: "Mary", age: 0))
             ]
         }
-        store.receive(.person(id: "Mary", action: .start))
+        store.receive(.person(id: "Mary", action: .longRunning(.start)))
 
         mainQueue.advance(by: 1)
         store.receive(.person(id: "John", action: .setAge(2))) {
@@ -620,7 +619,7 @@ final class PresentsLongRunningIntegrationTests: XCTestCase {
                 .presented(.init(name: "Mary", age: 1))
             ]
         }
-        store.receive(.person(id: "John", action: .stop)) {
+        store.receive(.person(id: "John", action: .longRunning(.stop))) {
             $0.$people = [
                 .presented(.init(name: "Mary", age: 1))
             ]
@@ -636,7 +635,7 @@ final class PresentsLongRunningIntegrationTests: XCTestCase {
                 .dismissing(.init(name: "Mary", age: 2))
             ]
         }
-        store.receive(.person(id: "Mary", action: .stop)) {
+        store.receive(.person(id: "Mary", action: .longRunning(.stop))) {
             $0.$people = []
         }
     }
