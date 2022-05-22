@@ -110,8 +110,7 @@ struct PersonState: Equatable {
 // 🎁 Action implements `LongRunningAction`, allowing it to be used
 // directly as a presenter.
 enum PersonAction: Equatable, LongRunningAction {
-  case begin
-  case cancel
+  case longRunning(LongRunningEvent)
   case setAge(Int)
 }
 
@@ -130,14 +129,14 @@ let personReducer = Reducer<PersonState, PersonAction, PersonEnvironment>.combin
       return .none
   
     // 🎁 For `LongRunningAction`, start any effects.
-    case .begin:
+    case .longRunning(.start):
       return environment.years()
         .receive(on: environment.mainQueue)
         .eraseToEffect(PersonAction.setAge)
         .cancellable(id: PersonEffect.self)
         
     // 🎁 For `LongRunningAction`, cancel any effects.
-    case .cancel:
+    case .longRunning(.stop):
       return .cancel(id: PersonEffect.self)
     }
   }
@@ -213,9 +212,9 @@ Reducer { state, action, environment in
     presenter: .init { state, action, environment in 
       switch action {
       case .present:
-        return .action(Effect(value: .your_custom_effect)) // or `.action(.your_custom_effect)`
+        return .action(Effect(value: .your_custom_action)) // or `.action(.your_custom_action)`
       case .dismiss:
-        return .action(Effect(value: .your_custom_effect)) // or `.immediate` if nothing to do
+        return .action(Effect(value: .your_custom_action)) // or `.immediate` if nothing to do
       }
     }
   )
